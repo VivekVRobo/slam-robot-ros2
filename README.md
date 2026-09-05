@@ -1,11 +1,28 @@
 # SLAM Robot — ROS 2 + Gazebo Ground-Truth Benchmarking
 
-[![Engineering CI](https://github.com/vasu4990/slam-robot-ros2/actions/workflows/checks.yml/badge.svg)](https://github.com/vasu4990/slam-robot-ros2/actions/workflows/checks.yml)
+[![Engineering CI](https://github.com/VivekVRobo/slam-robot-ros2/actions/workflows/checks.yml/badge.svg)](https://github.com/VivekVRobo/slam-robot-ros2/actions/workflows/checks.yml)
 
-An engineering-grade ROS 2 stack for a differential-drive robot performing **2D LiDAR SLAM, pose-graph localization, Gazebo physics simulation, and quantitative trajectory benchmarking**.
+A reproducibility-first ROS 2 stack for a differential-drive robot performing **2D LiDAR SLAM, pose-graph localization, Gazebo physics simulation, and quantitative trajectory benchmarking**.
 
 > **Reference platform:** ROS 2 **Lyrical Luth (LTS)** + Gazebo **Jetty**.  
 > **Status:** simulation architecture and offline evaluators are implemented; a successful Gazebo runtime, SLAM benchmark, rosbag regression, and physical-robot validation are still evidence-gated.
+
+## Project snapshot
+
+| | |
+|---|---|
+| **Problem** | Make ROS 2 SLAM experiments measurable and reproducible instead of relying only on screenshots or subjective map quality. |
+| **Core stack** | ROS 2, `slam_toolbox`, Gazebo, 2D LiDAR, Python benchmarking tools |
+| **Evaluation** | Ground-truth trajectory recording, ATE, RPE, loop-closure revisit error, map metrics, CPU/RSS profiling |
+| **Reproducibility** | Deterministic benchmark path, machine-readable scenarios/thresholds, rosbag record/replay |
+| **Current maturity** | Engineering reference with simulation/hardware claims explicitly evidence-gated |
+| **Next proof milestone** | Successful end-to-end Gazebo run with published benchmark artifacts, followed by real LiDAR + encoder evidence |
+
+## Why this project exists
+
+Many SLAM demos stop at “the map looks good.” This repository is structured around a stricter question: **can the result be reproduced, measured against simulator ground truth, and clearly separated from unverified hardware claims?**
+
+The goal is to turn a robotics demo into an engineering benchmark that another developer can inspect, run, challenge, and improve.
 
 ## What is now in this repository
 
@@ -178,6 +195,12 @@ benchmarks/
 | Hardware localization | ❌ |
 
 This is intentional. `config/robot.yaml` is the source of truth; simulation success is not allowed to silently become a physical-robot claim.
+
+## Contributing
+
+Contributions that improve reproducibility, simulation correctness, metrics, documentation, or hardware-integration evidence are welcome. Start with [`CONTRIBUTING.md`](CONTRIBUTING.md) and the open issues.
+
+If you reproduce a benchmark on a different machine or ROS/Gazebo configuration, include the environment and artifacts so the result can be compared meaningfully.
 
 ## Physical robot next step
 
