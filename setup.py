@@ -1,37 +1,47 @@
 from glob import glob
-from setuptools import find_packages, setup
+import os
+
+from setuptools import setup
 
 package_name = "slam_robot_ros2"
 
+
+def existing(paths):
+    return [path for path in paths if os.path.exists(path)]
+
+
+data_files = [
+    ("share/ament_index/resource_index/packages", [f"resource/{package_name}"]),
+    (f"share/{package_name}", ["package.xml"]),
+]
+
+for root_dir in ("launch", "config", "urdf", "worlds", "rviz", "docs", "media"):
+    if not os.path.exists(root_dir):
+        continue
+    for dirpath, _, filenames in os.walk(root_dir):
+        files = [os.path.join(dirpath, f) for f in filenames if os.path.isfile(os.path.join(dirpath, f))]
+        if files:
+            dest_dir = os.path.join("share", package_name, dirpath)
+            data_files.append((dest_dir, files))
+
 setup(
     name=package_name,
-    version="0.4.0",
-    packages=find_packages(exclude=["tests"]),
-    data_files=[
-        ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
-        ("share/" + package_name, ["package.xml"]),
-        ("share/" + package_name + "/launch", glob("launch/*.launch.py")),
-        ("share/" + package_name + "/config", glob("config/*.yaml")),
-        ("share/" + package_name + "/urdf", glob("urdf/*")),
-        ("share/" + package_name + "/rviz", glob("rviz/*")),
-        ("share/" + package_name + "/simulation/worlds", glob("simulation/worlds/*")),
-        ("share/" + package_name + "/simulation/models/slam_robot", glob("simulation/models/slam_robot/*")),
-        ("share/" + package_name + "/benchmarks", glob("benchmarks/*")),
-        ("share/" + package_name + "/scripts", glob("scripts/*")),
-    ],
-    install_requires=["setuptools"],
-    tests_require=["pytest"],
+    version="0.3.0",
+    # Keep installation intentionally narrow.  The repository also contains
+    # test/ and tools/ trees, but they are development assets rather than
+    # importable runtime packages and must not be installed into site-packages.
+    packages=[package_name],
+    data_files=data_files,
+    install_requires=["setuptools", "numpy>=1.24"],
     zip_safe=True,
     maintainer="Vivek Vala",
     maintainer_email="vivekvala562@gmail.com",
-    description="Engineering-grade ROS 2 LiDAR SLAM stack with Gazebo ground-truth benchmarking and hardware-evidence capture",
+    description="ROS 2 SLAM platform with quantitative trajectory and loop-closure evaluation.",
     license="MIT",
-    entry_points={"console_scripts": [
-        "diagnostics = slam_robot_ros2.diagnostics:main",
-        "tf_monitor = slam_robot_ros2.tf_monitor:main",
-        "synthetic_inputs = slam_robot_ros2.synthetic_inputs:main",
-        "trajectory_recorder = slam_robot_ros2.trajectory_recorder:main",
-        "benchmark_driver = slam_robot_ros2.benchmark_driver:main",
-        "hardware_audit = slam_robot_ros2.hardware_audit:main",
-    ]},
+    entry_points={
+        "console_scripts": [
+            "mock_scan_publisher = slam_robot_ros2.mock_scan_publisher:main",
+            "noisy_odom_publisher = slam_robot_ros2.noisy_odom_publisher:main",
+        ],
+    },
 )

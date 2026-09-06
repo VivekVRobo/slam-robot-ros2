@@ -7,7 +7,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: {python-version: '3.12', cache: pip}
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
       - run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
       - name: Compile Python
         run: python -m compileall -q setup.py launch slam_robot_ros2 tools
@@ -56,10 +59,32 @@ jobs:
           echo 'Expected: hardware mapping remains evidence-gated.'
       - uses: actions/upload-artifact@v4
         with: {name: slam-engineering-artifacts, path: artifacts/, if-no-files-found: error}
+
   ros-lyrical-build:
     runs-on: ubuntu-latest
+    container:
+      image: ubuntu:resolute
     steps:
-      - uses: ros-tooling/setup-ros@v0.7
-        with: {required-ros-distributions: lyrical}
-      - uses: ros-tooling/action-ros-ci@v0.4
-        with: {package-name: slam_robot_ros2, target-ros2-distro: lyrical, coverage-result: false}
+      - uses: actions/checkout@v4
+      - name: Setup ROS 2 Lyrical
+        uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: lyrical
+      - name: Resolve ROS dependencies
+        shell: bash
+        run: |
+          source /opt/ros/lyrical/setup.bash
+          rosdep update
+          rosdep install --from-paths . --ignore-src --rosdistro lyrical -r -y
+      - name: Build ROS package
+        shell: bash
+        run: |
+          source /opt/ros/lyrical/setup.bash
+          colcon build --packages-select slam_robot_ros2 --symlink-install --event-handlers console_direct+
+      - name: Test ROS package
+        shell: bash
+        run: |
+          source /opt/ros/lyrical/setup.bash
+          source install/setup.bash
+          colcon test --packages-select slam_robot_ros2 --event-handlers console_direct+ --python-testing pytest --pytest-args test
+          colcon test-result --verbose
