@@ -1,7 +1,7 @@
 from glob import glob
 import os
 
-from setuptools import find_packages, setup
+from setuptools import setup
 
 package_name = "slam_robot_ros2"
 
@@ -28,7 +28,10 @@ for directory in ("docs", "media"):
 setup(
     name=package_name,
     version="0.3.0",
-    packages=find_packages(exclude=["test", "tests"]),
+    # Keep installation intentionally narrow.  The repository also contains
+    # test/ and tools/ trees, but they are development assets rather than
+    # importable runtime packages and must not be installed into site-packages.
+    packages=[package_name],
     data_files=data_files,
     install_requires=["setuptools", "numpy>=1.24"],
     zip_safe=True,
