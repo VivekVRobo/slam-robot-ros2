@@ -1,37 +1,45 @@
 from glob import glob
+import os
+
 from setuptools import find_packages, setup
 
 package_name = "slam_robot_ros2"
 
+
+def existing(paths):
+    return [path for path in paths if os.path.exists(path)]
+
+
+data_files = [
+    ("share/ament_index/resource_index/packages", [f"resource/{package_name}"]),
+    (f"share/{package_name}", ["package.xml"]),
+]
+
+for directory in ("launch", "config", "urdf", "worlds", "rviz"):
+    files = existing(glob(f"{directory}/*"))
+    if files:
+        data_files.append((os.path.join("share", package_name, directory), files))
+
+for directory in ("docs", "media"):
+    files = existing(glob(f"{directory}/*"))
+    if files:
+        data_files.append((os.path.join("share", package_name, directory), files))
+
 setup(
     name=package_name,
-    version="0.4.0",
-    packages=find_packages(exclude=["tests"]),
-    data_files=[
-        ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
-        ("share/" + package_name, ["package.xml"]),
-        ("share/" + package_name + "/launch", glob("launch/*.launch.py")),
-        ("share/" + package_name + "/config", glob("config/*.yaml")),
-        ("share/" + package_name + "/urdf", glob("urdf/*")),
-        ("share/" + package_name + "/rviz", glob("rviz/*")),
-        ("share/" + package_name + "/simulation/worlds", glob("simulation/worlds/*")),
-        ("share/" + package_name + "/simulation/models/slam_robot", glob("simulation/models/slam_robot/*")),
-        ("share/" + package_name + "/benchmarks", glob("benchmarks/*")),
-        ("share/" + package_name + "/scripts", glob("scripts/*")),
-    ],
-    install_requires=["setuptools"],
-    tests_require=["pytest"],
+    version="0.3.0",
+    packages=find_packages(exclude=["test", "tests"]),
+    data_files=data_files,
+    install_requires=["setuptools", "numpy>=1.24"],
     zip_safe=True,
-    maintainer="Vivek Vala",
+    maintainer="VivekVRobotics",
     maintainer_email="vivekvala562@gmail.com",
-    description="Engineering-grade ROS 2 LiDAR SLAM stack with Gazebo ground-truth benchmarking and hardware-evidence capture",
+    description="ROS 2 SLAM platform with quantitative trajectory and loop-closure evaluation.",
     license="MIT",
-    entry_points={"console_scripts": [
-        "diagnostics = slam_robot_ros2.diagnostics:main",
-        "tf_monitor = slam_robot_ros2.tf_monitor:main",
-        "synthetic_inputs = slam_robot_ros2.synthetic_inputs:main",
-        "trajectory_recorder = slam_robot_ros2.trajectory_recorder:main",
-        "benchmark_driver = slam_robot_ros2.benchmark_driver:main",
-        "hardware_audit = slam_robot_ros2.hardware_audit:main",
-    ]},
+    entry_points={
+        "console_scripts": [
+            "mock_scan_publisher = slam_robot_ros2.mock_scan_publisher:main",
+            "noisy_odom_publisher = slam_robot_ros2.noisy_odom_publisher:main",
+        ],
+    },
 )
