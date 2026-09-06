@@ -15,15 +15,14 @@ data_files = [
     (f"share/{package_name}", ["package.xml"]),
 ]
 
-for directory in ("launch", "config", "urdf", "worlds", "rviz"):
-    files = existing(glob(f"{directory}/*"))
-    if files:
-        data_files.append((os.path.join("share", package_name, directory), files))
-
-for directory in ("docs", "media"):
-    files = existing(glob(f"{directory}/*"))
-    if files:
-        data_files.append((os.path.join("share", package_name, directory), files))
+for root_dir in ("launch", "config", "urdf", "worlds", "rviz", "docs", "media"):
+    if not os.path.exists(root_dir):
+        continue
+    for dirpath, _, filenames in os.walk(root_dir):
+        files = [os.path.join(dirpath, f) for f in filenames if os.path.isfile(os.path.join(dirpath, f))]
+        if files:
+            dest_dir = os.path.join("share", package_name, dirpath)
+            data_files.append((dest_dir, files))
 
 setup(
     name=package_name,

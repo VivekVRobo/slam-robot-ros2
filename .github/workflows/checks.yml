@@ -86,5 +86,5 @@ jobs:
         run: |
           source /opt/ros/lyrical/setup.bash
           source install/setup.bash
-          colcon test --packages-select slam_robot_ros2 --event-handlers console_direct+
+          colcon test --packages-select slam_robot_ros2 --event-handlers console_direct+ --pytest-args test
           colcon test-result --verbose

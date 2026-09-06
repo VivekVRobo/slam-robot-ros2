@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import argparse, yaml
+import argparse, sys, yaml
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parents[1]
 
 def generate(root: Path = ROOT) -> str:
-    robot = yaml.safe_load((root / "config/robot.yaml").read_text())
+    robot = yaml.safe_load((root / "config/robot.yaml").read_text(encoding="utf-8"))
     frames = robot["frames"]; topics = robot["topics"]; val = robot["validation"]
     lines = [
         "# SLAM Robot Engineering Report", "",
@@ -25,7 +28,7 @@ def main():
     a = p.parse_args()
     text = generate()
     a.output.parent.mkdir(parents=True, exist_ok=True)
-    a.output.write_text(text)
+    a.output.write_text(text, encoding="utf-8")
     print(text)
 
 if __name__ == "__main__":
