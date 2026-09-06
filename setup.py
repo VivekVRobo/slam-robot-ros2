@@ -38,7 +38,6 @@ setup(
     maintainer_email="vivekvala562@gmail.com",
     description="ROS 2 SLAM platform with quantitative trajectory and loop-closure evaluation.",
     license="MIT",
-    tests_require=["pytest"],
     entry_points={
         "console_scripts": [
             "mock_scan_publisher = slam_robot_ros2.mock_scan_publisher:main",
