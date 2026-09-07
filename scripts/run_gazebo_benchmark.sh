@@ -17,13 +17,31 @@ trap cleanup EXIT INT TERM
 ros2 launch slam_robot_ros2 simulation_mapping.launch.py headless:=true record_trajectory:=true run_benchmark_driver:=true &
 LAUNCH_PID=$!
 
+REQUIRED_TOPICS=(/scan /odom /ground_truth/odom /tf /tf_static /map /clock)
 for _ in $(seq 1 60); do
   TOPICS=$(ros2 topic list 2>/dev/null || true)
-  if grep -qx '/scan' <<<"$TOPICS" && grep -qx '/odom' <<<"$TOPICS" && grep -qx '/ground_truth/odom' <<<"$TOPICS" && grep -qx '/map' <<<"$TOPICS"; then break; fi
+  ready=true
+  for topic in "${REQUIRED_TOPICS[@]}"; do
+    if ! grep -qx "$topic" <<<"$TOPICS"; then
+      ready=false
+      break
+    fi
+  done
+  [[ "$ready" == true ]] && break
   sleep 1
 done
+
 TOPICS=$(ros2 topic list)
-for topic in /scan /odom /ground_truth/odom /map; do grep -qx "$topic" <<<"$TOPICS" || { echo "missing required topic $topic"; exit 2; }; done
+printf '%s\n' "$TOPICS" > "$ARTIFACTS/runtime-topics.txt"
+for topic in "${REQUIRED_TOPICS[@]}"; do
+  grep -qx "$topic" <<<"$TOPICS" || { echo "missing required runtime topic $topic"; exit 2; }
+done
+
+ros2 topic hz /scan --window 5 > "$ARTIFACTS/scan-hz.txt" 2>&1 &
+SCAN_HZ_PID=$!
+sleep 6
+kill "$SCAN_HZ_PID" 2>/dev/null || true
+wait "$SCAN_HZ_PID" 2>/dev/null || true
 
 ros2 bag record -o "$ARTIFACTS/bags/gazebo_loop_square" /scan /odom /ground_truth/odom /tf /tf_static /map /diagnostics /clock &
 BAG_PID=$!
@@ -38,6 +56,8 @@ kill -INT "$LAUNCH_PID"; wait "$LAUNCH_PID" || true; LAUNCH_PID=''
 wait "$PROFILE_PID" || true; PROFILE_PID=''
 trap - EXIT INT TERM
 
-[[ -s "$ARTIFACTS/trajectory.csv" ]] || { echo 'trajectory.csv was not generated'; exit 3; }
-[[ -s "$ARTIFACTS/map.pgm" ]] || { echo 'map.pgm was not generated'; exit 4; }
+[[ -s "$ARTIFACTS/runtime-topics.txt" ]] || { echo 'runtime topic snapshot was not generated'; exit 3; }
+[[ -s "$ARTIFACTS/trajectory.csv" ]] || { echo 'trajectory.csv was not generated'; exit 4; }
+[[ -s "$ARTIFACTS/map.pgm" ]] || { echo 'map.pgm was not generated'; exit 5; }
+[[ -s "$ARTIFACTS/map.yaml" ]] || { echo 'map.yaml was not generated'; exit 6; }
 bash scripts/evaluate_benchmark.sh "$ARTIFACTS/trajectory.csv" "$ARTIFACTS/map.pgm" "$ARTIFACTS/resource-profile.json"
