@@ -1,0 +1,51 @@
+simulation_run:
+  run_id: YYYY-MM-DD_gazebo_loop_square_SHORTSHA
+  date: YYYY-MM-DD
+  commit_sha: REPLACE_WITH_GIT_SHA
+  simulation: true
+  physical_hardware: false
+  scenario: gazebo_loop_square
+
+  environment:
+    os: REPLACE
+    kernel: REPLACE
+    cpu: REPLACE
+    ram: REPLACE
+    ros_distro: lyrical
+    gazebo_version: REPLACE
+    mode: headless
+    host_context: native_linux_or_wsl2_or_vm
+
+  commands:
+    build: "source /opt/ros/lyrical/setup.bash && rosdep install --from-paths . --ignore-src --rosdistro lyrical -r -y && colcon build --packages-select slam_robot_ros2 --symlink-install"
+    launch: "ros2 launch slam_robot_ros2 simulation_mapping.launch.py headless:=true record_trajectory:=true run_benchmark_driver:=true"
+    evaluate: "bash scripts/evaluate_benchmark.sh"
+    replay: "bash scripts/replay_benchmark.sh REPLACE_WITH_BAG_PATH"
+
+  topics:
+    - /scan
+    - /odom
+    - /ground_truth/odom
+    - /tf
+    - /tf_static
+    - /map
+    - /clock
+
+  artifacts:
+    trajectory: trajectory.csv
+    trajectory_metrics: trajectory-metrics.json
+    loop_metrics: loop-metrics.json
+    resource_profile: resource-profile.json
+    map_image: map.pgm
+    map_metadata: map.yaml
+    replay_notes: replay.md
+    benchmark_gate: benchmark-gate.json
+    rosbag_external_uri: REPLACE_OR_NULL
+    rosbag_sha256: REPLACE_OR_NULL
+
+  files: []
+
+  limitations:
+    - "Gazebo simulation evidence only; no physical LiDAR/encoder validation is implied."
+    - "Host/runtime environment must be reported with any performance or resource metric."
+    - "ATE/RPE values are comparable only across compatible scenario/evaluation settings."
