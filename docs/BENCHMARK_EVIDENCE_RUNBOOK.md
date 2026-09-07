@@ -16,7 +16,15 @@ Do not advance README runtime/hardware maturity gates without archived evidence.
 
 ## 1. Record environment
 
-Create `evidence/runs/<run-id>/environment.md` and record:
+Start by capturing machine/runtime provenance:
+
+```bash
+bash scripts/capture_simulation_environment.sh artifacts/environment.md
+```
+
+Then copy/review that information in `evidence/runs/<run-id>/environment.md` and add any details the script cannot infer, including rendering mode and non-default parameters.
+
+Required fields include:
 
 - commit SHA (`git rev-parse HEAD`)
 - operating system and kernel
@@ -25,6 +33,7 @@ Create `evidence/runs/<run-id>/environment.md` and record:
 - Gazebo version
 - Python version
 - headless vs GUI mode
+- whether the run is native Linux, WSL2, or another VM
 - benchmark scenario name
 - any non-default parameters
 
@@ -88,6 +97,7 @@ The run directory should contain, at minimum:
 evidence/runs/<run-id>/
 ├── environment.md
 ├── commands.txt
+├── manifest.yaml
 ├── trajectory.csv
 ├── trajectory-metrics.json
 ├── loop-metrics.json
@@ -101,6 +111,8 @@ evidence/runs/<run-id>/
 
 If an artifact cannot be produced, keep the failed run and explain why in `notes.md`; do not silently omit it.
 
+Use [`../evidence/SIMULATION_MANIFEST_TEMPLATE.yaml`](../evidence/SIMULATION_MANIFEST_TEMPLATE.yaml) as the machine-readable provenance template. It deliberately requires `simulation: true` and `physical_hardware: false`.
+
 ## 6. Evaluate trajectory quality
 
 ```bash
@@ -112,6 +124,12 @@ python tools/loop_closure_metrics.py artifacts/trajectory.csv \
 ```
 
 ATE and RPE should only be compared between runs that use compatible scenarios and evaluation settings.
+
+The full regression gate can be run with:
+
+```bash
+bash scripts/evaluate_benchmark.sh
+```
 
 ## 7. Capture resource profile
 
@@ -134,19 +152,38 @@ bash scripts/replay_benchmark.sh artifacts/bags/gazebo_loop_square
 
 Document whether replay reproduces the expected evaluation path and derived artifacts. A replay failure is evidence and must remain visible.
 
-## 9. Publish without overstating claims
+## 9. Validate the evidence manifest
+
+After filling `manifest.yaml`:
+
+```bash
+python tools/simulation_evidence_manifest.py evidence/runs/<run-id>/manifest.yaml
+```
+
+When all referenced files have been copied into the run directory, use the stricter check:
+
+```bash
+python tools/simulation_evidence_manifest.py \
+  evidence/runs/<run-id>/manifest.yaml \
+  --check-files
+```
+
+This validator checks the simulation/hardware claim boundary, Git SHA format, required environment fields, required runtime topics, artifact references, and optional file hashes. Passing the manifest proves **provenance completeness**, not benchmark quality by itself.
+
+## 10. Publish without overstating claims
 
 When a run is complete:
 
 - copy only genuine artifacts into `evidence/runs/<run-id>/`;
 - link the run from the README or an evidence index;
 - update only the maturity gates directly supported by that run;
+- state whether the host was native Linux, WSL2, or another virtualized environment;
 - keep physical-robot gates blocked until real LiDAR/encoder data exists.
 
 ## Recruiter review path
 
 A reviewer should be able to follow:
 
-`commit -> environment -> launch command -> rosbag/map/trajectory -> metrics -> replay -> limitations`
+`commit -> environment -> launch command -> runtime topics -> rosbag/map/trajectory -> metrics -> replay -> manifest -> limitations`
 
 without needing to trust an unsupported performance claim.
