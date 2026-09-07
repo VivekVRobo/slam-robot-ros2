@@ -1,29 +1,73 @@
-name: Gazebo Benchmark (manual)
+name: Gazebo Benchmark
+
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/simulation-benchmark.yml'
+      - 'package.xml'
+      - 'setup.py'
+      - 'launch/**'
+      - 'simulation/**'
+      - 'config/**'
+      - 'slam_robot_ros2/**'
+      - 'scripts/run_gazebo_benchmark.sh'
+      - 'scripts/evaluate_benchmark.sh'
+      - 'tools/**'
+      - 'benchmarks/**'
+
 permissions: {contents: read}
+
 jobs:
   headless-gazebo-benchmark:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    container:
+      image: ubuntu:resolute
+    timeout-minutes: 20
     env:
       QT_QPA_PLATFORM: offscreen
     steps:
       - uses: actions/checkout@v4
-      - uses: ros-tooling/setup-ros@v0.7
+      - name: Setup ROS 2 Lyrical
+        uses: ros-tooling/setup-ros@v0.7
         with:
           required-ros-distributions: lyrical
-      - name: Install ROS and Python dependencies
+      - name: Resolve runtime dependencies
+        shell: bash
         run: |
+          source /opt/ros/lyrical/setup.bash
+          rosdep update
           rosdep install --from-paths . --ignore-src -r -y --rosdistro lyrical
           python -m pip install -r requirements-dev.txt
       - name: Build package
         shell: bash
         run: |
           source /opt/ros/lyrical/setup.bash
-          colcon build --symlink-install --event-handlers console_direct+
+          colcon build --packages-select slam_robot_ros2 --symlink-install --event-handlers console_direct+
       - name: Static simulation contract
         run: python tools/simulation_lint.py
+      - name: Capture benchmark environment
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          {
+            echo "commit=$(git rev-parse HEAD)"
+            echo "ros_distro=${ROS_DISTRO:-unknown}"
+            echo "runner_arch=${RUNNER_ARCH:-unknown}"
+            echo "runner_os=${RUNNER_OS:-unknown}"
+            echo '--- uname ---'
+            uname -a
+            echo '--- os-release ---'
+            cat /etc/os-release
+            echo '--- python ---'
+            python --version
+            echo '--- gazebo ---'
+            gz sim --version || true
+            echo '--- package prefixes ---'
+            ros2 pkg prefix slam_toolbox || true
+            ros2 pkg prefix ros_gz_sim || true
+            ros2 pkg prefix nav2_map_server || true
+          } > artifacts/environment.txt
       - name: Run headless physics SLAM benchmark
         shell: bash
         run: |
@@ -36,9 +80,9 @@ jobs:
         with:
           name: gazebo-slam-benchmark-evidence
           path: artifacts/
-          if-no-files-found: warn
+          if-no-files-found: error
       - name: Evidence scope
         if: always()
         run: |
           echo 'This workflow produces simulation evidence only.'
-          echo 'A green run must never set hardware validation flags.'
+          echo 'A green run may support Gazebo/simulation maturity gates, never hardware validation gates.'
