@@ -5,7 +5,7 @@
 A reproducibility-first ROS 2 stack for a differential-drive robot performing **2D LiDAR SLAM, pose-graph localization, Gazebo physics simulation, and quantitative trajectory benchmarking**.
 
 > **Reference platform:** ROS 2 **Lyrical Luth (LTS)** + Gazebo **Jetty**.  
-> **Status:** simulation architecture and offline evaluators are implemented; a successful Gazebo runtime, SLAM benchmark, rosbag regression, and physical-robot validation are still evidence-gated.
+> **Status:** static contracts and the ROS 2 Lyrical package build are CI-verified; a successful Gazebo runtime, SLAM benchmark, rosbag regression, and physical-robot validation are still evidence-gated.
 
 ## Project snapshot
 
@@ -15,7 +15,7 @@ A reproducibility-first ROS 2 stack for a differential-drive robot performing **
 | **Core stack** | ROS 2, `slam_toolbox`, Gazebo, 2D LiDAR, Python benchmarking tools |
 | **Evaluation** | Ground-truth trajectory recording, ATE, RPE, loop-closure revisit error, map metrics, CPU/RSS profiling |
 | **Reproducibility** | Deterministic benchmark path, machine-readable scenarios/thresholds, rosbag record/replay |
-| **Current maturity** | Engineering reference with simulation/hardware claims explicitly evidence-gated |
+| **Current maturity** | CI-verified engineering reference; simulation-runtime and hardware claims remain explicitly evidence-gated |
 | **Next proof milestone** | Successful end-to-end Gazebo run with published benchmark artifacts, followed by real LiDAR + encoder evidence |
 
 ## Why this project exists
@@ -87,6 +87,8 @@ ros2 launch slam_robot_ros2 simulation_mapping.launch.py \
 ```
 
 The benchmark driver is simulation-only by default. It publishes a deterministic loop path from `config/benchmark_path.yaml`.
+
+For the evidence-producing workflow, use [`docs/BENCHMARK_EVIDENCE_RUNBOOK.md`](docs/BENCHMARK_EVIDENCE_RUNBOOK.md). It defines the required environment record, runtime channels, artifacts, metric generation, replay validation, and claim rules for the first published Gazebo benchmark.
 
 ## Record a regression rosbag
 
@@ -181,9 +183,9 @@ benchmarks/
 
 | Gate | Current |
 |---|---|
-| Static engineering reference | ✅ |
-| Gazebo model/world contract | ✅ |
-| ROS Lyrical build | ❌ until CI evidence |
+| Static engineering reference | ✅ CI-verified |
+| Gazebo model/world contract | ✅ statically verified |
+| ROS Lyrical build | ✅ CI-verified |
 | Gazebo runtime | ❌ until launch evidence |
 | Ground-truth bridge | ❌ until runtime evidence |
 | SLAM simulation benchmark | ❌ |
