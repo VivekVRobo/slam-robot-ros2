@@ -38,6 +38,11 @@ jobs:
           source /opt/ros/lyrical/setup.bash
           rosdep update
           rosdep install --from-paths . --ignore-src -r -y --rosdistro lyrical
+      - name: Install benchmark Python dependencies
+        shell: bash
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends python3-yaml
       - name: Build package
         shell: bash
         run: |
