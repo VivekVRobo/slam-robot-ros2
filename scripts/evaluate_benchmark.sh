@@ -3,11 +3,12 @@ set -euo pipefail
 TRAJ=${1:-artifacts/trajectory.csv}
 MAP=${2:-artifacts/map.pgm}
 RESOURCE=${3:-artifacts/resource-profile.json}
-mkdir -p artifacts
-python tools/trajectory_metrics.py "$TRAJ" --output artifacts/trajectory-metrics.json
-python tools/loop_closure_metrics.py "$TRAJ" --output artifacts/loop-metrics.json
-if [[ -f "$MAP" ]]; then python tools/map_metrics.py "$MAP" --output artifacts/map-metrics.json; fi
-ARGS=(--trajectory artifacts/trajectory-metrics.json --loop artifacts/loop-metrics.json --output artifacts/benchmark-gate.json)
-[[ -f artifacts/map-metrics.json ]] && ARGS+=(--map artifacts/map-metrics.json)
+OUTPUT_DIR=${ARTIFACTS_DIR:-$(dirname "$TRAJ")}
+mkdir -p "$OUTPUT_DIR"
+python3 tools/trajectory_metrics.py "$TRAJ" --output "$OUTPUT_DIR/trajectory-metrics.json"
+python3 tools/loop_closure_metrics.py "$TRAJ" --output "$OUTPUT_DIR/loop-metrics.json"
+if [[ -f "$MAP" ]]; then python3 tools/map_metrics.py "$MAP" --output "$OUTPUT_DIR/map-metrics.json"; fi
+ARGS=(--trajectory "$OUTPUT_DIR/trajectory-metrics.json" --loop "$OUTPUT_DIR/loop-metrics.json" --output "$OUTPUT_DIR/benchmark-gate.json")
+[[ -f "$OUTPUT_DIR/map-metrics.json" ]] && ARGS+=(--map "$OUTPUT_DIR/map-metrics.json")
 [[ -f "$RESOURCE" ]] && ARGS+=(--resource "$RESOURCE")
-python tools/benchmark_gate.py "${ARGS[@]}"
+python3 tools/benchmark_gate.py "${ARGS[@]}"
