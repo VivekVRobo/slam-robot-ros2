@@ -4,13 +4,53 @@ DURATION=${BENCHMARK_DURATION_S:-52}
 ARTIFACTS=${ARTIFACTS_DIR:-artifacts}
 mkdir -p "$ARTIFACTS" "$ARTIFACTS/bags"
 LAUNCH_PID=''; BAG_PID=''; PROFILE_PID=''
+
+stop_process() {
+  local pid=${1:-}
+  local label=${2:-process}
+  local int_grace=${3:-12}
+  local term_grace=${4:-5}
+
+  [[ -z "$pid" ]] && return 0
+  if ! kill -0 "$pid" 2>/dev/null; then
+    wait "$pid" 2>/dev/null || true
+    return 0
+  fi
+
+  kill -INT "$pid" 2>/dev/null || true
+  for _ in $(seq 1 "$int_grace"); do
+    if ! kill -0 "$pid" 2>/dev/null; then
+      wait "$pid" 2>/dev/null || true
+      return 0
+    fi
+    sleep 1
+  done
+
+  echo "$label did not stop after SIGINT; escalating to SIGTERM"
+  kill -TERM "$pid" 2>/dev/null || true
+  for _ in $(seq 1 "$term_grace"); do
+    if ! kill -0 "$pid" 2>/dev/null; then
+      wait "$pid" 2>/dev/null || true
+      return 0
+    fi
+    sleep 1
+  done
+
+  echo "$label did not stop after SIGTERM; escalating to SIGKILL"
+  kill -KILL "$pid" 2>/dev/null || true
+  wait "$pid" 2>/dev/null || true
+}
+
 cleanup() {
   set +e
-  [[ -n "$BAG_PID" ]] && kill -INT "$BAG_PID" 2>/dev/null
-  [[ -n "$LAUNCH_PID" ]] && kill -INT "$LAUNCH_PID" 2>/dev/null
-  [[ -n "$PROFILE_PID" ]] && wait "$PROFILE_PID" 2>/dev/null
-  [[ -n "$BAG_PID" ]] && wait "$BAG_PID" 2>/dev/null
-  [[ -n "$LAUNCH_PID" ]] && wait "$LAUNCH_PID" 2>/dev/null
+  stop_process "$BAG_PID" 'ros2 bag recorder' 8 4
+  stop_process "$LAUNCH_PID" 'ROS launch graph' 12 5
+  if [[ -n "$PROFILE_PID" ]]; then
+    if kill -0 "$PROFILE_PID" 2>/dev/null; then
+      kill -TERM "$PROFILE_PID" 2>/dev/null || true
+    fi
+    wait "$PROFILE_PID" 2>/dev/null || true
+  fi
 }
 trap cleanup EXIT INT TERM
 
@@ -62,8 +102,11 @@ PROFILE_PID=$!
 sleep "$DURATION"
 ros2 run nav2_map_server map_saver_cli -f "$ARTIFACTS/map" --ros-args -p use_sim_time:=true
 
-kill -INT "$BAG_PID"; wait "$BAG_PID" || true; BAG_PID=''
-kill -INT "$LAUNCH_PID"; wait "$LAUNCH_PID" || true; LAUNCH_PID=''
+# Finalization must never be allowed to consume the entire CI timeout. Give
+# rosbag and the ROS launch graph a graceful SIGINT window so bags and the
+# trajectory recorder can flush, then escalate only if a process is stuck.
+stop_process "$BAG_PID" 'ros2 bag recorder' 12 5; BAG_PID=''
+stop_process "$LAUNCH_PID" 'ROS launch graph' 15 5; LAUNCH_PID=''
 wait "$PROFILE_PID" || true; PROFILE_PID=''
 trap - EXIT INT TERM
 
