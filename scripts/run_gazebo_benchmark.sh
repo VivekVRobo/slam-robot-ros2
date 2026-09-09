@@ -14,16 +14,45 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-ros2 launch slam_robot_ros2 simulation_mapping.launch.py headless:=true record_trajectory:=true run_benchmark_driver:=true &
+LAUNCH_LOG="$ARTIFACTS/launch.log"
+ros2 launch slam_robot_ros2 simulation_mapping.launch.py headless:=true record_trajectory:=true run_benchmark_driver:=true >"$LAUNCH_LOG" 2>&1 &
 LAUNCH_PID=$!
 
 for _ in $(seq 1 60); do
   TOPICS=$(ros2 topic list 2>/dev/null || true)
-  if grep -qx '/scan' <<<"$TOPICS" && grep -qx '/odom' <<<"$TOPICS" && grep -qx '/ground_truth/odom' <<<"$TOPICS" && grep -qx '/map' <<<"$TOPICS"; then break; fi
+  if grep -qx '/scan' <<<"$TOPICS" && grep -qx '/odom' <<<"$TOPICS" && grep -qx '/ground_truth/odom' <<<"$TOPICS" && grep -qx '/map' <<<"$TOPICS"; then
+    break
+  fi
+
+  if ! kill -0 "$LAUNCH_PID" 2>/dev/null; then
+    if wait "$LAUNCH_PID"; then
+      LAUNCH_RC=0
+    else
+      LAUNCH_RC=$?
+    fi
+    LAUNCH_PID=''
+    printf '%s\n' "$TOPICS" > "$ARTIFACTS/runtime_topics.txt"
+    ros2 node list > "$ARTIFACTS/runtime_nodes.txt" 2>&1 || true
+    gz topic -l > "$ARTIFACTS/gazebo_topics.txt" 2>&1 || true
+    echo "Gazebo/SLAM launch exited before the required runtime graph was ready (exit=$LAUNCH_RC)."
+    cat "$LAUNCH_LOG"
+    exit 2
+  fi
+
   sleep 1
 done
-TOPICS=$(ros2 topic list)
-for topic in /scan /odom /ground_truth/odom /map; do grep -qx "$topic" <<<"$TOPICS" || { echo "missing required topic $topic"; exit 2; }; done
+
+TOPICS=$(ros2 topic list 2>/dev/null || true)
+printf '%s\n' "$TOPICS" > "$ARTIFACTS/runtime_topics.txt"
+for topic in /scan /odom /ground_truth/odom /map; do
+  if ! grep -qx "$topic" <<<"$TOPICS"; then
+    ros2 node list > "$ARTIFACTS/runtime_nodes.txt" 2>&1 || true
+    gz topic -l > "$ARTIFACTS/gazebo_topics.txt" 2>&1 || true
+    echo "missing required topic $topic"
+    cat "$LAUNCH_LOG"
+    exit 2
+  fi
+done
 
 ros2 bag record -o "$ARTIFACTS/bags/gazebo_loop_square" /scan /odom /ground_truth/odom /tf /tf_static /map /diagnostics /clock &
 BAG_PID=$!
