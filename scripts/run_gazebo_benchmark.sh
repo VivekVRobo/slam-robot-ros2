@@ -27,7 +27,7 @@ for topic in /scan /odom /ground_truth/odom /map; do grep -qx "$topic" <<<"$TOPI
 
 ros2 bag record -o "$ARTIFACTS/bags/gazebo_loop_square" /scan /odom /ground_truth/odom /tf /tf_static /map /diagnostics /clock &
 BAG_PID=$!
-python tools/process_profile.py --duration "$DURATION" --match slam_toolbox --match gz --match ros_gz_bridge --output "$ARTIFACTS/resource-profile.json" &
+python3 tools/process_profile.py --duration "$DURATION" --match slam_toolbox --match gz --match ros_gz_bridge --output "$ARTIFACTS/resource-profile.json" &
 PROFILE_PID=$!
 
 sleep "$DURATION"
