@@ -38,7 +38,6 @@ jobs:
           source /opt/ros/lyrical/setup.bash
           rosdep update
           rosdep install --from-paths . --ignore-src -r -y --rosdistro lyrical
-          python -m pip install -r requirements-dev.txt
       - name: Build package
         shell: bash
         run: |
