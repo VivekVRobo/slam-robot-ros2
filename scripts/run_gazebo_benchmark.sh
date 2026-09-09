@@ -3,21 +3,69 @@ set -euo pipefail
 DURATION=${BENCHMARK_DURATION_S:-52}
 ARTIFACTS=${ARTIFACTS_DIR:-artifacts}
 mkdir -p "$ARTIFACTS" "$ARTIFACTS/bags"
-LAUNCH_PID=''; BAG_PID=''; PROFILE_PID=''
+LAUNCH_PID=''; BAG_PID=''; PROFILE_PID=''; SCAN_HZ_PID=''
+
+stop_process() {
+  local pid=${1:-}
+  local label=${2:-process}
+  local int_grace=${3:-12}
+  local term_grace=${4:-5}
+
+  [[ -z "$pid" ]] && return 0
+  if ! kill -0 "$pid" 2>/dev/null; then
+    wait "$pid" 2>/dev/null || true
+    return 0
+  fi
+
+  kill -INT "$pid" 2>/dev/null || true
+  for _ in $(seq 1 "$int_grace"); do
+    if ! kill -0 "$pid" 2>/dev/null; then
+      wait "$pid" 2>/dev/null || true
+      return 0
+    fi
+    sleep 1
+  done
+
+  echo "$label did not stop after SIGINT; escalating to SIGTERM"
+  kill -TERM "$pid" 2>/dev/null || true
+  for _ in $(seq 1 "$term_grace"); do
+    if ! kill -0 "$pid" 2>/dev/null; then
+      wait "$pid" 2>/dev/null || true
+      return 0
+    fi
+    sleep 1
+  done
+
+  echo "$label did not stop after SIGTERM; escalating to SIGKILL"
+  kill -KILL "$pid" 2>/dev/null || true
+  wait "$pid" 2>/dev/null || true
+}
+
+capture_runtime_diagnostics() {
+  ros2 node list > "$ARTIFACTS/runtime-nodes.txt" 2>&1 || true
+  gz topic -l > "$ARTIFACTS/gazebo-topics.txt" 2>&1 || true
+}
+
 cleanup() {
   set +e
-  [[ -n "$BAG_PID" ]] && kill -INT "$BAG_PID" 2>/dev/null
-  [[ -n "$LAUNCH_PID" ]] && kill -INT "$LAUNCH_PID" 2>/dev/null
-  [[ -n "$PROFILE_PID" ]] && wait "$PROFILE_PID" 2>/dev/null
-  [[ -n "$BAG_PID" ]] && wait "$BAG_PID" 2>/dev/null
-  [[ -n "$LAUNCH_PID" ]] && wait "$LAUNCH_PID" 2>/dev/null
+  stop_process "$SCAN_HZ_PID" 'scan-rate sampler' 2 2
+  stop_process "$BAG_PID" 'ros2 bag recorder' 8 4
+  stop_process "$LAUNCH_PID" 'ROS launch graph' 12 5
+  if [[ -n "$PROFILE_PID" ]]; then
+    if kill -0 "$PROFILE_PID" 2>/dev/null; then
+      kill -TERM "$PROFILE_PID" 2>/dev/null || true
+    fi
+    wait "$PROFILE_PID" 2>/dev/null || true
+  fi
 }
 trap cleanup EXIT INT TERM
 
-ros2 launch slam_robot_ros2 simulation_mapping.launch.py headless:=true record_trajectory:=true run_benchmark_driver:=true &
+LAUNCH_LOG="$ARTIFACTS/launch.log"
+ros2 launch slam_robot_ros2 simulation_mapping.launch.py headless:=true record_trajectory:=true run_benchmark_driver:=true >"$LAUNCH_LOG" 2>&1 &
 LAUNCH_PID=$!
 
 REQUIRED_TOPICS=(/scan /odom /ground_truth/odom /tf /tf_static /map /clock)
+ready=false
 for _ in $(seq 1 60); do
   TOPICS=$(ros2 topic list 2>/dev/null || true)
   ready=true
@@ -28,31 +76,56 @@ for _ in $(seq 1 60); do
     fi
   done
   [[ "$ready" == true ]] && break
+
+  if ! kill -0 "$LAUNCH_PID" 2>/dev/null; then
+    if wait "$LAUNCH_PID"; then LAUNCH_RC=0; else LAUNCH_RC=$?; fi
+    LAUNCH_PID=''
+    printf '%s\n' "$TOPICS" > "$ARTIFACTS/runtime-topics.txt"
+    capture_runtime_diagnostics
+    echo "Gazebo/SLAM launch exited before the required runtime graph was ready (exit=$LAUNCH_RC)."
+    cat "$LAUNCH_LOG"
+    exit 2
+  fi
   sleep 1
 done
 
-TOPICS=$(ros2 topic list)
+TOPICS=$(ros2 topic list 2>/dev/null || true)
 printf '%s\n' "$TOPICS" > "$ARTIFACTS/runtime-topics.txt"
 for topic in "${REQUIRED_TOPICS[@]}"; do
-  grep -qx "$topic" <<<"$TOPICS" || { echo "missing required runtime topic $topic"; exit 2; }
+  if ! grep -qx "$topic" <<<"$TOPICS"; then
+    capture_runtime_diagnostics
+    echo "missing required runtime topic $topic"
+    cat "$LAUNCH_LOG"
+    exit 2
+  fi
 done
 
 ros2 topic hz /scan --window 5 > "$ARTIFACTS/scan-hz.txt" 2>&1 &
 SCAN_HZ_PID=$!
 sleep 6
-kill "$SCAN_HZ_PID" 2>/dev/null || true
-wait "$SCAN_HZ_PID" 2>/dev/null || true
+stop_process "$SCAN_HZ_PID" 'scan-rate sampler' 2 2
+SCAN_HZ_PID=''
 
 ros2 bag record -o "$ARTIFACTS/bags/gazebo_loop_square" /scan /odom /ground_truth/odom /tf /tf_static /map /diagnostics /clock &
 BAG_PID=$!
-python tools/process_profile.py --duration "$DURATION" --match slam_toolbox --match gz --match ros_gz_bridge --output "$ARTIFACTS/resource-profile.json" &
+python3 tools/process_profile.py --duration "$DURATION" --match slam_toolbox --match gz --match ros_gz_bridge --output "$ARTIFACTS/resource-profile.json" &
 PROFILE_PID=$!
 
 sleep "$DURATION"
+if ! kill -0 "$LAUNCH_PID" 2>/dev/null; then
+  if wait "$LAUNCH_PID"; then LAUNCH_RC=0; else LAUNCH_RC=$?; fi
+  LAUNCH_PID=''
+  capture_runtime_diagnostics
+  echo "Gazebo/SLAM launch exited during benchmark capture (exit=$LAUNCH_RC)."
+  cat "$LAUNCH_LOG"
+  exit 2
+fi
+
 ros2 run nav2_map_server map_saver_cli -f "$ARTIFACTS/map" --ros-args -p use_sim_time:=true
 
-kill -INT "$BAG_PID"; wait "$BAG_PID" || true; BAG_PID=''
-kill -INT "$LAUNCH_PID"; wait "$LAUNCH_PID" || true; LAUNCH_PID=''
+# Flush evidence without allowing stuck ROS processes to consume the CI timeout.
+stop_process "$BAG_PID" 'ros2 bag recorder' 12 5; BAG_PID=''
+stop_process "$LAUNCH_PID" 'ROS launch graph' 15 5; LAUNCH_PID=''
 wait "$PROFILE_PID" || true; PROFILE_PID=''
 trap - EXIT INT TERM
 
@@ -60,4 +133,7 @@ trap - EXIT INT TERM
 [[ -s "$ARTIFACTS/trajectory.csv" ]] || { echo 'trajectory.csv was not generated'; exit 4; }
 [[ -s "$ARTIFACTS/map.pgm" ]] || { echo 'map.pgm was not generated'; exit 5; }
 [[ -s "$ARTIFACTS/map.yaml" ]] || { echo 'map.yaml was not generated'; exit 6; }
+[[ -s "$ARTIFACTS/resource-profile.json" ]] || { echo 'resource profile was not generated'; exit 7; }
+[[ -s "$ARTIFACTS/bags/gazebo_loop_square/metadata.yaml" ]] || { echo 'rosbag metadata was not generated'; exit 8; }
+
 bash scripts/evaluate_benchmark.sh "$ARTIFACTS/trajectory.csv" "$ARTIFACTS/map.pgm" "$ARTIFACTS/resource-profile.json"
