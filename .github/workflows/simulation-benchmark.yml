@@ -15,6 +15,21 @@ on:
       - 'scripts/evaluate_benchmark.sh'
       - 'tools/**'
       - 'benchmarks/**'
+  push:
+    branches:
+      - 'growth/tier-a-slam-evidence'
+    paths:
+      - '.github/workflows/simulation-benchmark.yml'
+      - 'package.xml'
+      - 'setup.py'
+      - 'launch/**'
+      - 'simulation/**'
+      - 'config/**'
+      - 'slam_robot_ros2/**'
+      - 'scripts/run_gazebo_benchmark.sh'
+      - 'scripts/evaluate_benchmark.sh'
+      - 'tools/**'
+      - 'benchmarks/**'
 
 permissions: {contents: read}
 
