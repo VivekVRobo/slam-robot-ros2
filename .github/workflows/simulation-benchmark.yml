@@ -44,7 +44,7 @@ jobs:
           source /opt/ros/lyrical/setup.bash
           colcon build --packages-select slam_robot_ros2 --symlink-install --event-handlers console_direct+
       - name: Static simulation contract
-        run: python tools/simulation_lint.py
+        run: python3 tools/simulation_lint.py
       - name: Capture benchmark environment
         shell: bash
         run: |
@@ -59,7 +59,7 @@ jobs:
             echo '--- os-release ---'
             cat /etc/os-release
             echo '--- python ---'
-            python --version
+            python3 --version
             echo '--- gazebo ---'
             gz sim --version || true
             echo '--- package prefixes ---'
