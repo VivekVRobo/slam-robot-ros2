@@ -68,9 +68,11 @@ jobs:
       - name: Capture benchmark environment
         shell: bash
         run: |
+          source /opt/ros/lyrical/setup.bash
+          source install/setup.bash
           mkdir -p artifacts
           {
-            echo "commit=$(git rev-parse HEAD)"
+            echo "commit=${GITHUB_SHA:-unknown}"
             echo "ros_distro=${ROS_DISTRO:-unknown}"
             echo "runner_arch=${RUNNER_ARCH:-unknown}"
             echo "runner_os=${RUNNER_OS:-unknown}"
@@ -81,11 +83,12 @@ jobs:
             echo '--- python ---'
             python3 --version
             echo '--- gazebo ---'
-            gz sim --version || true
+            gz sim --version 2>&1 || true
             echo '--- package prefixes ---'
-            ros2 pkg prefix slam_toolbox || true
-            ros2 pkg prefix ros_gz_sim || true
-            ros2 pkg prefix nav2_map_server || true
+            ros2 pkg prefix slam_robot_ros2 2>&1 || true
+            ros2 pkg prefix slam_toolbox 2>&1 || true
+            ros2 pkg prefix ros_gz_sim 2>&1 || true
+            ros2 pkg prefix nav2_map_server 2>&1 || true
           } > artifacts/environment.txt
       - name: Run headless physics SLAM benchmark
         shell: bash
