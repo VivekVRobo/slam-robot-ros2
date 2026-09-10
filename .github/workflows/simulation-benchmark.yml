@@ -48,6 +48,11 @@ jobs:
     env:
       QT_QPA_PLATFORM: offscreen
     steps:
+      - name: Install Git for checkout provenance
+        shell: bash
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git ca-certificates
       - uses: actions/checkout@v4
       - name: Setup ROS 2 Lyrical
         uses: ros-tooling/setup-ros@v0.7
