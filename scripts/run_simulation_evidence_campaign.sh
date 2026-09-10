@@ -66,15 +66,19 @@ cat > "$RUN_DIR/commands.txt" <<EOF
 rm -rf build install log
 rosdep install --from-paths . --ignore-src --rosdistro $ROS_DISTRO -r -y
 colcon build --packages-select slam_robot_ros2 --symlink-install
-source install/setup.bash
+set +u; source install/setup.bash; set -u
 ARTIFACTS_DIR=$RUNTIME_DIR BENCHMARK_DURATION_S=$DURATION bash scripts/run_gazebo_benchmark.sh
 EOF
 
 rm -rf build install log
 rosdep install --from-paths . --ignore-src --rosdistro "$ROS_DISTRO" -r -y
 colcon build --packages-select slam_robot_ros2 --symlink-install
+# colcon-generated setup scripts may probe optional unset variables such as
+# COLCON_TRACE, so suspend nounset only across this trusted environment source.
+set +u
 # shellcheck disable=SC1091
 source install/setup.bash
+set -u
 
 ARTIFACTS_DIR="$RUNTIME_DIR" BENCHMARK_DURATION_S="$DURATION" \
   bash scripts/run_gazebo_benchmark.sh
