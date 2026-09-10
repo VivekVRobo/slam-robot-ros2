@@ -66,6 +66,9 @@ jobs:
           python3 tools/simulation_lint.py
       - name: Run reproducible Gazebo evidence campaign
         shell: bash
+        env:
+          GIT_DIR: ${{ github.workspace }}/.git
+          GIT_WORK_TREE: ${{ github.workspace }}
         run: |
           source /opt/ros/lyrical/setup.bash
           bash scripts/run_simulation_evidence_campaign.sh
