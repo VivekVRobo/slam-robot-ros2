@@ -123,7 +123,7 @@ if ! kill -0 "$LAUNCH_PID" 2>/dev/null; then
   exit 2
 fi
 
-ros2 run nav2_map_server map_saver_cli -f "$ARTIFACTS/map" --ros-args -p use_sim_time:=true
+ros2 run nav2_map_server map_saver_cli -f "$ARTIFACTS/map" --ros-args -p use_sim_time:=true -p save_map_timeout:=10.0
 
 # Flush evidence without allowing stuck ROS processes to consume the CI timeout.
 stop_process "$BAG_PID" 'ros2 bag recorder' 12 5; BAG_PID=''
