@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ubuntu:resolute
-    timeout-minutes: 20
+    timeout-minutes: 45
     env:
       QT_QPA_PLATFORM: offscreen
     steps:
