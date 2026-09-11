@@ -2,12 +2,12 @@ profile: loop_square
 simulation_only: true
 segments:
   - {name: settle, duration_s: 2.0, linear_x: 0.0, angular_z: 0.0}
-  - {name: leg_1, duration_s: 7.0, linear_x: 0.32, angular_z: 0.0}
+  - {name: leg_1, duration_s: 2.5, linear_x: 0.32, angular_z: 0.0}
   - {name: turn_1, duration_s: 1.75, linear_x: 0.0, angular_z: 0.90}
-  - {name: leg_2, duration_s: 7.0, linear_x: 0.32, angular_z: 0.0}
+  - {name: leg_2, duration_s: 2.5, linear_x: 0.32, angular_z: 0.0}
   - {name: turn_2, duration_s: 1.75, linear_x: 0.0, angular_z: 0.90}
-  - {name: leg_3, duration_s: 7.0, linear_x: 0.32, angular_z: 0.0}
+  - {name: leg_3, duration_s: 2.5, linear_x: 0.32, angular_z: 0.0}
   - {name: turn_3, duration_s: 1.75, linear_x: 0.0, angular_z: 0.90}
-  - {name: leg_4, duration_s: 7.0, linear_x: 0.32, angular_z: 0.0}
+  - {name: leg_4, duration_s: 2.5, linear_x: 0.32, angular_z: 0.0}
   - {name: turn_4, duration_s: 1.75, linear_x: 0.0, angular_z: 0.90}
   - {name: settle_end, duration_s: 3.0, linear_x: 0.0, angular_z: 0.0}
