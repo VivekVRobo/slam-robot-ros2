@@ -4,6 +4,8 @@ DURATION=${BENCHMARK_DURATION_S:-52}
 ARTIFACTS=${ARTIFACTS_DIR:-artifacts}
 mkdir -p "$ARTIFACTS" "$ARTIFACTS/bags"
 LAUNCH_PID=''; BAG_PID=''; PROFILE_PID=''; SCAN_HZ_PID=''
+RECORDER_OUTPUT="artifacts/trajectory.csv"
+rm -f "$RECORDER_OUTPUT"
 
 stop_process() {
   local pid=${1:-}
@@ -106,7 +108,7 @@ sleep 6
 stop_process "$SCAN_HZ_PID" 'scan-rate sampler' 2 2
 SCAN_HZ_PID=''
 
-ros2 bag record -o "$ARTIFACTS/bags/gazebo_loop_square" /scan /odom /ground_truth/odom /tf /tf_static /map /diagnostics /clock &
+ros2 bag record -o "$ARTIFACTS/bags/gazebo_loop_square" --topics /scan /odom /ground_truth/odom /tf /tf_static /map /diagnostics /clock &
 BAG_PID=$!
 python3 tools/process_profile.py --duration "$DURATION" --match slam_toolbox --match gz --match ros_gz_bridge --output "$ARTIFACTS/resource-profile.json" &
 PROFILE_PID=$!
@@ -128,6 +130,12 @@ stop_process "$BAG_PID" 'ros2 bag recorder' 12 5; BAG_PID=''
 stop_process "$LAUNCH_PID" 'ROS launch graph' 15 5; LAUNCH_PID=''
 wait "$PROFILE_PID" || true; PROFILE_PID=''
 trap - EXIT INT TERM
+
+# The trajectory recorder currently writes to its package default path. Move only
+# this run's freshly-created output into the active evidence directory.
+if [[ "$RECORDER_OUTPUT" != "$ARTIFACTS/trajectory.csv" && -s "$RECORDER_OUTPUT" ]]; then
+  mv "$RECORDER_OUTPUT" "$ARTIFACTS/trajectory.csv"
+fi
 
 [[ -s "$ARTIFACTS/runtime-topics.txt" ]] || { echo 'runtime topic snapshot was not generated'; exit 3; }
 [[ -s "$ARTIFACTS/trajectory.csv" ]] || { echo 'trajectory.csv was not generated'; exit 4; }
