@@ -19,6 +19,6 @@
       <collision name="pillar"><pose>2.6 2.35 0.6 0 0 0</pose><geometry><cylinder><radius>0.32</radius><length>1.2</length></cylinder></geometry></collision>
       <visual name="north_v"><pose>0 4 0.6 0 0 0</pose><geometry><box><size>8.4 0.12 1.2</size></box></geometry></visual><visual name="south_v"><pose>0 -4 0.6 0 0 0</pose><geometry><box><size>8.4 0.12 1.2</size></box></geometry></visual><visual name="east_v"><pose>4 0 0.6 0 0 0</pose><geometry><box><size>0.12 8.4 1.2</size></box></geometry></visual><visual name="west_v"><pose>-4 0 0.6 0 0 0</pose><geometry><box><size>0.12 8.4 1.2</size></box></geometry></visual><visual name="inner_a_v"><pose>0.7 1.1 0.6 0 0 0</pose><geometry><box><size>3.2 0.18 1.2</size></box></geometry></visual><visual name="inner_b_v"><pose>-1.3 -1.0 0.6 0 0 0</pose><geometry><box><size>0.18 3.0 1.2</size></box></geometry></visual><visual name="inner_c_v"><pose>1.8 -1.7 0.6 0 0 0</pose><geometry><box><size>2.2 0.18 1.2</size></box></geometry></visual><visual name="pillar_v"><pose>2.6 2.35 0.6 0 0 0</pose><geometry><cylinder><radius>0.32</radius><length>1.2</length></cylinder></geometry></visual>
     </link></model>
-    <include><uri>model://slam_robot</uri><pose>-2.8 -2.8 0 0 0 0</pose></include>
+    <include><uri>model://slam_robot</uri><pose>-3.4 -2.8 0 0 0 0</pose></include>
   </world>
 </sdf>
