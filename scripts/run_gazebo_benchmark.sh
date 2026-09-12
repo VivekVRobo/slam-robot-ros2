@@ -3,7 +3,7 @@ set -euo pipefail
 DURATION=${BENCHMARK_DURATION_S:-52}
 ARTIFACTS=${ARTIFACTS_DIR:-artifacts}
 mkdir -p "$ARTIFACTS" "$ARTIFACTS/bags"
-LAUNCH_PID=''; BAG_PID=''; PROFILE_PID=''; SCAN_HZ_PID=''
+LAUNCH_PID=''; DRIVER_PID=''; BAG_PID=''; PROFILE_PID=''; SCAN_HZ_PID=''
 RECORDER_OUTPUT="artifacts/trajectory.csv"
 rm -f "$RECORDER_OUTPUT"
 
@@ -52,6 +52,7 @@ cleanup() {
   set +e
   stop_process "$SCAN_HZ_PID" 'scan-rate sampler' 2 2
   stop_process "$BAG_PID" 'ros2 bag recorder' 8 4
+  stop_process "$DRIVER_PID" 'benchmark driver' 4 2
   stop_process "$LAUNCH_PID" 'ROS launch graph' 12 5
   if [[ -n "$PROFILE_PID" ]]; then
     if kill -0 "$PROFILE_PID" 2>/dev/null; then
@@ -63,7 +64,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 LAUNCH_LOG="$ARTIFACTS/launch.log"
-ros2 launch slam_robot_ros2 simulation_mapping.launch.py headless:=true record_trajectory:=true run_benchmark_driver:=true >"$LAUNCH_LOG" 2>&1 &
+ros2 launch slam_robot_ros2 simulation_mapping.launch.py headless:=true record_trajectory:=true run_benchmark_driver:=false >"$LAUNCH_LOG" 2>&1 &
 LAUNCH_PID=$!
 
 REQUIRED_TOPICS=(/scan /odom /ground_truth/odom /tf /tf_static /map /clock)
@@ -108,6 +109,12 @@ sleep 6
 stop_process "$SCAN_HZ_PID" 'scan-rate sampler' 2 2
 SCAN_HZ_PID=''
 
+# Start the deterministic drive only after Gazebo, bridges, SLAM and scan rate
+# have been proven ready. Starting it inside the launch graph can consume path
+# segments while transport endpoints are still coming online.
+ros2 run slam_robot_ros2 benchmark_driver --ros-args -p use_sim_time:=true >>"$LAUNCH_LOG" 2>&1 &
+DRIVER_PID=$!
+
 ros2 bag record -o "$ARTIFACTS/bags/gazebo_loop_square" --topics /scan /odom /ground_truth/odom /tf /tf_static /map /diagnostics /clock &
 BAG_PID=$!
 python3 tools/process_profile.py --duration "$DURATION" --match slam_toolbox --match gz --match ros_gz_bridge --output "$ARTIFACTS/resource-profile.json" &
@@ -122,11 +129,20 @@ if ! kill -0 "$LAUNCH_PID" 2>/dev/null; then
   cat "$LAUNCH_LOG"
   exit 2
 fi
+if ! kill -0 "$DRIVER_PID" 2>/dev/null; then
+  if wait "$DRIVER_PID"; then DRIVER_RC=0; else DRIVER_RC=$?; fi
+  DRIVER_PID=''
+  capture_runtime_diagnostics
+  echo "benchmark driver exited during benchmark capture (exit=$DRIVER_RC)."
+  cat "$LAUNCH_LOG"
+  exit 2
+fi
 
 ros2 run nav2_map_server map_saver_cli -f "$ARTIFACTS/map" --ros-args -p use_sim_time:=true -p save_map_timeout:=10.0
 
 # Flush evidence without allowing stuck ROS processes to consume the CI timeout.
 stop_process "$BAG_PID" 'ros2 bag recorder' 12 5; BAG_PID=''
+stop_process "$DRIVER_PID" 'benchmark driver' 4 2; DRIVER_PID=''
 stop_process "$LAUNCH_PID" 'ROS launch graph' 15 5; LAUNCH_PID=''
 wait "$PROFILE_PID" || true; PROFILE_PID=''
 trap - EXIT INT TERM
