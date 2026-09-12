@@ -15,7 +15,7 @@ class BenchmarkDriver(Node):
         if not self.get_parameter('allow_hardware').value and not self.get_parameter('use_sim_time').value:
             raise RuntimeError('benchmark_driver is simulation-only by default; set allow_hardware:=true only after safety review')
         data=yaml.safe_load(Path(self.get_parameter('profile_file').value).read_text())
-        self.segments=data['segments'];self.i=0;self.elapsed=0.0;self.dt=0.05;self.command_period=0.5;self.since_publish=self.command_period;self.finished=False
+        self.segments=data['segments'];self.i=0;self.elapsed=0.0;self.dt=0.05;self.segment_started=False;self.finished=False
         self.pub=self.create_publisher(Twist,'/cmd_vel',10);self.timer=self.create_timer(self.dt,self.tick)
         self.get_logger().info(f"benchmark profile={data.get('profile')} segments={len(self.segments)}")
     def tick(self):
@@ -23,12 +23,12 @@ class BenchmarkDriver(Node):
             if not self.finished:
                 self.pub.publish(Twist());self.finished=True
             return
-        seg=self.segments[self.i];self.since_publish+=self.dt
-        if self.since_publish>=self.command_period:
-            msg=Twist();msg.linear.x=float(seg['linear_x']);msg.angular.z=float(seg['angular_z']);self.pub.publish(msg);self.since_publish=0.0
+        seg=self.segments[self.i]
+        if not self.segment_started:
+            msg=Twist();msg.linear.x=float(seg['linear_x']);msg.angular.z=float(seg['angular_z']);self.pub.publish(msg);self.segment_started=True
         self.elapsed+=self.dt
         if self.elapsed>=float(seg['duration_s']):
-            self.get_logger().info(f"segment complete: {seg['name']}");self.i+=1;self.elapsed=0.0;self.since_publish=self.command_period
+            self.get_logger().info(f"segment complete: {seg['name']}");self.i+=1;self.elapsed=0.0;self.segment_started=False
 
 def main(args=None):
     rclpy.init(args=args);n=BenchmarkDriver()
