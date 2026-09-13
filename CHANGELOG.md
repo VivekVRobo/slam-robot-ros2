@@ -7,7 +7,7 @@
 - Added hardware-data-ready and hardware-calibrated maturity stages before mapping/localization claims.
 - Added CI checks proving the template cannot pass measured-hardware gates without evidence.
 
-## 0.3.0 - 2026-08-18
+## 0.3.0 - 2026-08-30
 - Added Gazebo Jetty physics benchmark world and differential-drive LiDAR model.
 - Added separate simulator ground-truth odometry bridge.
 - Added deterministic benchmark driver and trajectory recorder.
