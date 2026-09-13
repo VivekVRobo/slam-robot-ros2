@@ -6,6 +6,7 @@ import rclpy
 from nav_msgs.msg import Odometry
 from rclpy.duration import Duration
 from rclpy.node import Node
+from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from rclpy.time import Time
 from tf2_ros import Buffer, TransformException, TransformListener
 
@@ -25,7 +26,20 @@ class TrajectoryRecorder(Node):
         self._file=path.open('w',newline='',encoding='utf-8'); self._writer=csv.writer(self._file)
         self._writer.writerow(['stamp_s','gt_x','gt_y','gt_yaw','est_x','est_y','est_yaw']); self._file.flush()
         self.tf=Buffer(cache_time=Duration(seconds=30.0)); self.listener=TransformListener(self.tf,self)
-        self.create_subscription(Odometry,self.get_parameter('ground_truth_topic').value,self._gt,20)
+        # Ground truth is compared against the latest map->base transform, so stale
+        # odometry samples must never queue behind the live simulation state. A
+        # reliable bridge publisher is compatible with this best-effort subscriber.
+        gt_qos=QoSProfile(
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1,
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+        )
+        self.create_subscription(
+            Odometry,
+            self.get_parameter('ground_truth_topic').value,
+            self._gt,
+            gt_qos,
+        )
         hz=max(float(self.get_parameter('sample_rate_hz').value),0.1); self.create_timer(1.0/hz,self._sample)
     def _gt(self,msg): self.latest_gt=msg
     def _sample(self):
