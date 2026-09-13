@@ -15,6 +15,7 @@
   ros_type_name: geometry_msgs/msg/Twist
   gz_type_name: gz.msgs.Twist
   direction: ROS_TO_GZ
+  qos_profile: SENSOR_DATA
 - ros_topic_name: /odom
   gz_topic_name: /model/slam_robot/odometry
   ros_type_name: nav_msgs/msg/Odometry
