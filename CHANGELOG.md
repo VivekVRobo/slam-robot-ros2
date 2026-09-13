@@ -1,5 +1,5 @@
 # Changelog
-## 0.4.0 - 2026-08-18
+## 0.4.0 - 2026-08-30
 - Added physical LiDAR/encoder hardware profile with explicit unmeasured placeholders.
 - Added physical ROS graph/TF/rate/timestamp audit and one-command rosbag evidence capture.
 - Added wheel-radius and wheel-separation calibration tooling based on externally measured truth.
@@ -7,7 +7,7 @@
 - Added hardware-data-ready and hardware-calibrated maturity stages before mapping/localization claims.
 - Added CI checks proving the template cannot pass measured-hardware gates without evidence.
 
-## 0.3.0 - 2026-08-30
+## 0.3.0 - 2026-08-18
 - Added Gazebo Jetty physics benchmark world and differential-drive LiDAR model.
 - Added separate simulator ground-truth odometry bridge.
 - Added deterministic benchmark driver and trajectory recorder.
