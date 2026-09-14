@@ -3,7 +3,7 @@ set -euo pipefail
 DURATION=${BENCHMARK_DURATION_S:-52}
 ARTIFACTS=${ARTIFACTS_DIR:-artifacts}
 mkdir -p "$ARTIFACTS" "$ARTIFACTS/bags"
-LAUNCH_PID=''; DRIVER_PID=''; BAG_PID=''; PROFILE_PID=''; SCAN_HZ_PID=''
+LAUNCH_PID=''; DRIVER_PID=''; BAG_PID=''; PROFILE_PID=''; SCAN_HZ_PID=''; CMD_TRACE_PID=''
 RECORDER_OUTPUT="artifacts/trajectory.csv"
 rm -f "$RECORDER_OUTPUT"
 
@@ -51,6 +51,7 @@ capture_runtime_diagnostics() {
 cleanup() {
   set +e
   stop_process "$SCAN_HZ_PID" 'scan-rate sampler' 2 2
+  stop_process "$CMD_TRACE_PID" 'Gazebo cmd_vel trace' 2 2
   stop_process "$BAG_PID" 'ros2 bag recorder' 8 4
   stop_process "$DRIVER_PID" 'benchmark driver' 4 2
   stop_process "$LAUNCH_PID" 'ROS launch graph' 12 5
@@ -109,13 +110,19 @@ sleep 6
 stop_process "$SCAN_HZ_PID" 'scan-rate sampler' 2 2
 SCAN_HZ_PID=''
 
+# Capture the Gazebo-side control topic directly. This distinguishes a benchmark
+# publisher problem from ROS->Gazebo bridge/control delivery failures without
+# changing the commanded path or acceptance thresholds.
+gz topic -e -t /model/slam_robot/cmd_vel > "$ARTIFACTS/cmd-vel-gz.txt" 2>&1 &
+CMD_TRACE_PID=$!
+
 # Start the deterministic drive only after Gazebo, bridges, SLAM and scan rate
 # have been proven ready. Starting it inside the launch graph can consume path
 # segments while transport endpoints are still coming online.
 ros2 run slam_robot_ros2 benchmark_driver --ros-args -p use_sim_time:=true >>"$LAUNCH_LOG" 2>&1 &
 DRIVER_PID=$!
 
-ros2 bag record -o "$ARTIFACTS/bags/gazebo_loop_square" --topics /scan /odom /ground_truth/odom /tf /tf_static /map /diagnostics /clock &
+ros2 bag record -o "$ARTIFACTS/bags/gazebo_loop_square" --topics /scan /cmd_vel /odom /ground_truth/odom /tf /tf_static /map /diagnostics /clock &
 BAG_PID=$!
 python3 tools/process_profile.py --duration "$DURATION" --match slam_toolbox --match gz --match ros_gz_bridge --output "$ARTIFACTS/resource-profile.json" &
 PROFILE_PID=$!
@@ -141,6 +148,7 @@ fi
 ros2 run nav2_map_server map_saver_cli -f "$ARTIFACTS/map" --ros-args -p use_sim_time:=true -p save_map_timeout:=10.0
 
 # Flush evidence without allowing stuck ROS processes to consume the CI timeout.
+stop_process "$CMD_TRACE_PID" 'Gazebo cmd_vel trace' 2 2; CMD_TRACE_PID=''
 stop_process "$BAG_PID" 'ros2 bag recorder' 12 5; BAG_PID=''
 stop_process "$DRIVER_PID" 'benchmark driver' 4 2; DRIVER_PID=''
 stop_process "$LAUNCH_PID" 'ROS launch graph' 15 5; LAUNCH_PID=''
@@ -159,5 +167,6 @@ fi
 [[ -s "$ARTIFACTS/map.yaml" ]] || { echo 'map.yaml was not generated'; exit 6; }
 [[ -s "$ARTIFACTS/resource-profile.json" ]] || { echo 'resource profile was not generated'; exit 7; }
 [[ -s "$ARTIFACTS/bags/gazebo_loop_square/metadata.yaml" ]] || { echo 'rosbag metadata was not generated'; exit 8; }
+[[ -s "$ARTIFACTS/cmd-vel-gz.txt" ]] || { echo 'Gazebo cmd_vel trace was not generated'; exit 9; }
 
 bash scripts/evaluate_benchmark.sh "$ARTIFACTS/trajectory.csv" "$ARTIFACTS/map.pgm" "$ARTIFACTS/resource-profile.json"
