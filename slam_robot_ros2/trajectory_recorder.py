@@ -26,9 +26,6 @@ class TrajectoryRecorder(Node):
         self._file=path.open('w',newline='',encoding='utf-8'); self._writer=csv.writer(self._file)
         self._writer.writerow(['stamp_s','gt_x','gt_y','gt_yaw','est_x','est_y','est_yaw']); self._file.flush()
         self.tf=Buffer(cache_time=Duration(seconds=30.0)); self.listener=TransformListener(self.tf,self)
-        # Ground truth is compared against the latest map->base transform, so stale
-        # odometry samples must never queue behind the live simulation state. A
-        # reliable bridge publisher is compatible with this best-effort subscriber.
         gt_qos=QoSProfile(
             history=HistoryPolicy.KEEP_LAST,
             depth=1,
@@ -44,10 +41,12 @@ class TrajectoryRecorder(Node):
     def _gt(self,msg): self.latest_gt=msg
     def _sample(self):
         if self.latest_gt is None:return
-        try:t=self.tf.lookup_transform(self.get_parameter('map_frame').value,self.get_parameter('base_frame').value,Time())
+        gt=self.latest_gt
+        gt_time=Time.from_msg(gt.header.stamp)
+        try:t=self.tf.lookup_transform(self.get_parameter('map_frame').value,self.get_parameter('base_frame').value,gt_time)
         except TransformException:return
-        gp=self.latest_gt.pose.pose.position; gq=self.latest_gt.pose.pose.orientation; ep=t.transform.translation; eq=t.transform.rotation
-        stamp=self.get_clock().now().nanoseconds/1e9
+        gp=gt.pose.pose.position; gq=gt.pose.pose.orientation; ep=t.transform.translation; eq=t.transform.rotation
+        stamp=gt_time.nanoseconds/1e9
         row=(stamp,gp.x,gp.y,yaw(gq),ep.x,ep.y,yaw(eq)); self.rows.append(row)
         self._writer.writerow(row); self._file.flush()
     def close(self):
