@@ -112,4 +112,28 @@ trap - EXIT INT TERM
 
 [[ -s "$ARTIFACTS/trajectory.csv" ]] || { echo 'trajectory.csv was not generated'; exit 3; }
 [[ -s "$ARTIFACTS/map.pgm" ]] || { echo 'map.pgm was not generated'; exit 4; }
+
+# ros2 launch may return after a child recorder has received shutdown but
+# before its final buffered trajectory rows reach disk. Do not hash/evaluate
+# evidence until the trajectory has remained unchanged across two checks.
+trajectory_sha=''
+trajectory_stable=0
+for _ in $(seq 1 10); do
+  current_sha=$(sha256sum "$ARTIFACTS/trajectory.csv" | awk '{print $1}')
+  if [[ "$current_sha" == "$trajectory_sha" ]]; then
+    trajectory_stable=$((trajectory_stable + 1))
+    if (( trajectory_stable >= 2 )); then
+      break
+    fi
+  else
+    trajectory_sha="$current_sha"
+    trajectory_stable=0
+  fi
+  sleep 1
+done
+if (( trajectory_stable < 2 )); then
+  echo 'trajectory.csv did not settle after launch shutdown'
+  exit 5
+fi
+
 bash scripts/evaluate_benchmark.sh "$ARTIFACTS/trajectory.csv" "$ARTIFACTS/map.pgm" "$ARTIFACTS/resource-profile.json"
