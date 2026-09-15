@@ -169,4 +169,28 @@ fi
 [[ -s "$ARTIFACTS/bags/gazebo_loop_square/metadata.yaml" ]] || { echo 'rosbag metadata was not generated'; exit 8; }
 [[ -s "$ARTIFACTS/cmd-vel-gz.txt" ]] || { echo 'Gazebo cmd_vel trace was not generated'; exit 9; }
 
+# The launch parent can exit just before the trajectory recorder finishes its
+# final buffered write. Wait for the evidence file to settle before evaluation
+# and manifest hashing so the bundle cannot validate one byte sequence and
+# upload another.
+trajectory_sha=''
+trajectory_stable=0
+for _ in $(seq 1 10); do
+  current_sha=$(sha256sum "$ARTIFACTS/trajectory.csv" | awk '{print $1}')
+  if [[ "$current_sha" == "$trajectory_sha" ]]; then
+    trajectory_stable=$((trajectory_stable + 1))
+    if (( trajectory_stable >= 2 )); then
+      break
+    fi
+  else
+    trajectory_sha="$current_sha"
+    trajectory_stable=0
+  fi
+  sleep 1
+done
+if (( trajectory_stable < 2 )); then
+  echo 'trajectory.csv did not settle after launch shutdown'
+  exit 10
+fi
+
 bash scripts/evaluate_benchmark.sh "$ARTIFACTS/trajectory.csv" "$ARTIFACTS/map.pgm" "$ARTIFACTS/resource-profile.json"
