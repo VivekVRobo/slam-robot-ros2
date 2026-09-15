@@ -43,6 +43,42 @@ stop_process() {
   wait "$pid" 2>/dev/null || true
 }
 
+stop_process_group() {
+  local pid=${1:-}
+  local label=${2:-process-group}
+  local int_grace=${3:-12}
+  local term_grace=${4:-5}
+
+  [[ -z "$pid" ]] && return 0
+  if ! kill -0 "$pid" 2>/dev/null; then
+    wait "$pid" 2>/dev/null || true
+    return 0
+  fi
+
+  kill -INT -- "-$pid" 2>/dev/null || true
+  for _ in $(seq 1 "$int_grace"); do
+    if ! kill -0 "$pid" 2>/dev/null; then
+      wait "$pid" 2>/dev/null || true
+      return 0
+    fi
+    sleep 1
+  done
+
+  echo "$label did not stop after SIGINT; escalating to SIGTERM"
+  kill -TERM -- "-$pid" 2>/dev/null || true
+  for _ in $(seq 1 "$term_grace"); do
+    if ! kill -0 "$pid" 2>/dev/null; then
+      wait "$pid" 2>/dev/null || true
+      return 0
+    fi
+    sleep 1
+  done
+
+  echo "$label did not stop after SIGTERM; escalating to SIGKILL"
+  kill -KILL -- "-$pid" 2>/dev/null || true
+  wait "$pid" 2>/dev/null || true
+}
+
 capture_runtime_diagnostics() {
   ros2 node list > "$ARTIFACTS/runtime-nodes.txt" 2>&1 || true
   gz topic -l > "$ARTIFACTS/gazebo-topics.txt" 2>&1 || true
@@ -54,7 +90,7 @@ cleanup() {
   stop_process "$CMD_TRACE_PID" 'Gazebo cmd_vel trace' 2 2
   stop_process "$BAG_PID" 'ros2 bag recorder' 8 4
   stop_process "$DRIVER_PID" 'benchmark driver' 4 2
-  stop_process "$LAUNCH_PID" 'ROS launch graph' 12 5
+  stop_process_group "$LAUNCH_PID" 'ROS launch graph' 12 5
   if [[ -n "$PROFILE_PID" ]]; then
     if kill -0 "$PROFILE_PID" 2>/dev/null; then
       kill -TERM "$PROFILE_PID" 2>/dev/null || true
@@ -65,7 +101,10 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 LAUNCH_LOG="$ARTIFACTS/launch.log"
-ros2 launch slam_robot_ros2 simulation_mapping.launch.py headless:=true record_trajectory:=true run_benchmark_driver:=false >"$LAUNCH_LOG" 2>&1 &
+# Run the launch graph in its own process group. ros2 launch can leave child
+# nodes alive after the parent exits; evidence must not be hashed while the
+# trajectory recorder is still able to append samples.
+setsid ros2 launch slam_robot_ros2 simulation_mapping.launch.py headless:=true record_trajectory:=true run_benchmark_driver:=false >"$LAUNCH_LOG" 2>&1 &
 LAUNCH_PID=$!
 
 REQUIRED_TOPICS=(/scan /odom /ground_truth/odom /tf /tf_static /map /clock)
@@ -110,15 +149,9 @@ sleep 6
 stop_process "$SCAN_HZ_PID" 'scan-rate sampler' 2 2
 SCAN_HZ_PID=''
 
-# Capture the Gazebo-side control topic directly. This distinguishes a benchmark
-# publisher problem from ROS->Gazebo bridge/control delivery failures without
-# changing the commanded path or acceptance thresholds.
 gz topic -e -t /model/slam_robot/cmd_vel > "$ARTIFACTS/cmd-vel-gz.txt" 2>&1 &
 CMD_TRACE_PID=$!
 
-# Start the deterministic drive only after Gazebo, bridges, SLAM and scan rate
-# have been proven ready. Starting it inside the launch graph can consume path
-# segments while transport endpoints are still coming online.
 ros2 run slam_robot_ros2 benchmark_driver --ros-args -p use_sim_time:=true >>"$LAUNCH_LOG" 2>&1 &
 DRIVER_PID=$!
 
@@ -147,16 +180,13 @@ fi
 
 ros2 run nav2_map_server map_saver_cli -f "$ARTIFACTS/map" --ros-args -p use_sim_time:=true -p save_map_timeout:=10.0
 
-# Flush evidence without allowing stuck ROS processes to consume the CI timeout.
 stop_process "$CMD_TRACE_PID" 'Gazebo cmd_vel trace' 2 2; CMD_TRACE_PID=''
 stop_process "$BAG_PID" 'ros2 bag recorder' 12 5; BAG_PID=''
 stop_process "$DRIVER_PID" 'benchmark driver' 4 2; DRIVER_PID=''
-stop_process "$LAUNCH_PID" 'ROS launch graph' 15 5; LAUNCH_PID=''
+stop_process_group "$LAUNCH_PID" 'ROS launch graph' 15 5; LAUNCH_PID=''
 wait "$PROFILE_PID" || true; PROFILE_PID=''
 trap - EXIT INT TERM
 
-# The trajectory recorder currently writes to its package default path. Move only
-# this run's freshly-created output into the active evidence directory.
 if [[ "$RECORDER_OUTPUT" != "$ARTIFACTS/trajectory.csv" && -s "$RECORDER_OUTPUT" ]]; then
   mv "$RECORDER_OUTPUT" "$ARTIFACTS/trajectory.csv"
 fi
@@ -169,10 +199,6 @@ fi
 [[ -s "$ARTIFACTS/bags/gazebo_loop_square/metadata.yaml" ]] || { echo 'rosbag metadata was not generated'; exit 8; }
 [[ -s "$ARTIFACTS/cmd-vel-gz.txt" ]] || { echo 'Gazebo cmd_vel trace was not generated'; exit 9; }
 
-# The launch parent can exit just before the trajectory recorder finishes its
-# final buffered write. Wait for the evidence file to settle before evaluation
-# and manifest hashing so the bundle cannot validate one byte sequence and
-# upload another.
 trajectory_sha=''
 trajectory_stable=0
 for _ in $(seq 1 10); do
