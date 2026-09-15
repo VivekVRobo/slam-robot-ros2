@@ -9,6 +9,15 @@ SCENARIO=${SCENARIO:-gazebo_loop_square}
 DURATION=${BENCHMARK_DURATION_S:-52}
 ALLOW_DIRTY=${ALLOW_DIRTY_EVIDENCE:-0}
 
+# Preserve diagnostics even when a preflight check fails before a run-specific
+# evidence directory can be created. The workflow uploads artifacts/evidence/
+# with if-no-files-found:error, so this file guarantees the actual preflight
+# cause survives every failed campaign.
+PREFLIGHT_DIR=artifacts/evidence/preflight
+mkdir -p "$PREFLIGHT_DIR"
+PREFLIGHT_LOG="$PREFLIGHT_DIR/preflight.log"
+exec > >(tee -a "$PREFLIGHT_LOG") 2>&1
+
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || {
     echo "ERROR: required command not found: $1" >&2
@@ -45,6 +54,7 @@ RUNTIME_DIR="$RUN_DIR/runtime"
 mkdir -p "$RUNTIME_DIR"
 
 LOG="$RUN_DIR/campaign.log"
+cp "$PREFLIGHT_LOG" "$LOG"
 exec > >(tee -a "$LOG") 2>&1
 
 printf 'run_id=%s\ncommit=%s\nscenario=%s\n' "$RUN_ID" "$SHA" "$SCENARIO"
@@ -56,15 +66,19 @@ cat > "$RUN_DIR/commands.txt" <<EOF
 rm -rf build install log
 rosdep install --from-paths . --ignore-src --rosdistro $ROS_DISTRO -r -y
 colcon build --packages-select slam_robot_ros2 --symlink-install
-source install/setup.bash
+set +u; source install/setup.bash; set -u
 ARTIFACTS_DIR=$RUNTIME_DIR BENCHMARK_DURATION_S=$DURATION bash scripts/run_gazebo_benchmark.sh
 EOF
 
 rm -rf build install log
 rosdep install --from-paths . --ignore-src --rosdistro "$ROS_DISTRO" -r -y
 colcon build --packages-select slam_robot_ros2 --symlink-install
+# colcon-generated setup scripts may probe optional unset variables such as
+# COLCON_TRACE, so suspend nounset only across this trusted environment source.
+set +u
 # shellcheck disable=SC1091
 source install/setup.bash
+set -u
 
 ARTIFACTS_DIR="$RUNTIME_DIR" BENCHMARK_DURATION_S="$DURATION" \
   bash scripts/run_gazebo_benchmark.sh

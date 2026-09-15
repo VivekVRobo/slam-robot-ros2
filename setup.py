@@ -15,7 +15,7 @@ data_files = [
     (f"share/{package_name}", ["package.xml"]),
 ]
 
-for root_dir in ("launch", "config", "urdf", "worlds", "rviz", "docs", "media"):
+for root_dir in ("launch", "config", "urdf", "worlds", "rviz", "docs", "media", "simulation"):
     if not os.path.exists(root_dir):
         continue
     for dirpath, _, filenames in os.walk(root_dir):
@@ -26,7 +26,7 @@ for root_dir in ("launch", "config", "urdf", "worlds", "rviz", "docs", "media"):
 
 setup(
     name=package_name,
-    version="0.3.0",
+    version="0.4.0",
     # Keep installation intentionally narrow.  The repository also contains
     # test/ and tools/ trees, but they are development assets rather than
     # importable runtime packages and must not be installed into site-packages.
@@ -40,8 +40,12 @@ setup(
     license="MIT",
     entry_points={
         "console_scripts": [
+            "benchmark_driver = slam_robot_ros2.benchmark_driver:main",
+            "diagnostics = slam_robot_ros2.diagnostics:main",
             "mock_scan_publisher = slam_robot_ros2.mock_scan_publisher:main",
             "noisy_odom_publisher = slam_robot_ros2.noisy_odom_publisher:main",
+            "tf_monitor = slam_robot_ros2.tf_monitor:main",
+            "trajectory_recorder = slam_robot_ros2.trajectory_recorder:main",
         ],
     },
 )

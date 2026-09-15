@@ -1,44 +1,93 @@
-name: Gazebo Benchmark (manual)
+name: Gazebo Benchmark
+
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/simulation-benchmark.yml'
+      - 'package.xml'
+      - 'setup.py'
+      - 'launch/**'
+      - 'simulation/**'
+      - 'config/**'
+      - 'slam_robot_ros2/**'
+      - 'scripts/run_gazebo_benchmark.sh'
+      - 'scripts/run_simulation_evidence_campaign.sh'
+      - 'scripts/evaluate_benchmark.sh'
+      - 'scripts/capture_simulation_environment.sh'
+      - 'tools/**'
+      - 'benchmarks/**'
+      - 'requirements-dev.txt'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/simulation-benchmark.yml'
+      - 'package.xml'
+      - 'setup.py'
+      - 'launch/**'
+      - 'simulation/**'
+      - 'config/**'
+      - 'slam_robot_ros2/**'
+      - 'scripts/run_gazebo_benchmark.sh'
+      - 'scripts/run_simulation_evidence_campaign.sh'
+      - 'scripts/evaluate_benchmark.sh'
+      - 'scripts/capture_simulation_environment.sh'
+      - 'tools/**'
+      - 'benchmarks/**'
+      - 'requirements-dev.txt'
+
 permissions: {contents: read}
+
 jobs:
   headless-gazebo-benchmark:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    container:
+      image: ubuntu:resolute
+    timeout-minutes: 45
     env:
       QT_QPA_PLATFORM: offscreen
     steps:
+      - name: Install Git for checkout provenance
+        shell: bash
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git ca-certificates
       - uses: actions/checkout@v4
-      - uses: ros-tooling/setup-ros@v0.7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Setup ROS 2 Lyrical
+        uses: ros-tooling/setup-ros@v0.7
         with:
           required-ros-distributions: lyrical
-      - name: Install ROS and Python dependencies
+      - name: Resolve benchmark runtime dependencies
+        shell: bash
         run: |
+          source /opt/ros/lyrical/setup.bash
+          rosdep update
           rosdep install --from-paths . --ignore-src -r -y --rosdistro lyrical
-          python -m pip install -r requirements-dev.txt
-      - name: Build package
-        shell: bash
-        run: |
-          source /opt/ros/lyrical/setup.bash
-          colcon build --symlink-install --event-handlers console_direct+
       - name: Static simulation contract
-        run: python tools/simulation_lint.py
-      - name: Run headless physics SLAM benchmark
         shell: bash
         run: |
           source /opt/ros/lyrical/setup.bash
-          source install/setup.bash
-          bash scripts/run_gazebo_benchmark.sh
+          python3 tools/simulation_lint.py
+      - name: Run reproducible Gazebo evidence campaign
+        shell: bash
+        env:
+          GIT_DIR: ${{ github.workspace }}/.git
+          GIT_WORK_TREE: ${{ github.workspace }}
+        run: |
+          source /opt/ros/lyrical/setup.bash
+          bash scripts/run_simulation_evidence_campaign.sh
       - name: Upload benchmark evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: gazebo-slam-benchmark-evidence
-          path: artifacts/
-          if-no-files-found: warn
+          path: artifacts/evidence/
+          if-no-files-found: error
       - name: Evidence scope
         if: always()
         run: |
           echo 'This workflow produces simulation evidence only.'
-          echo 'A green run must never set hardware validation flags.'
+          echo 'A green run may support Gazebo/simulation maturity gates, never physical-hardware validation.'

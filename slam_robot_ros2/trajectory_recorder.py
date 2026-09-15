@@ -6,6 +6,7 @@ import rclpy
 from nav_msgs.msg import Odometry
 from rclpy.duration import Duration
 from rclpy.node import Node
+from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from rclpy.time import Time
 from tf2_ros import Buffer, TransformException, TransformListener
 
@@ -21,22 +22,37 @@ class TrajectoryRecorder(Node):
         self.declare_parameter('base_frame','base_footprint')
         self.declare_parameter('sample_rate_hz',10.0)
         self.latest_gt=None; self.rows=[]
+        path=Path(self.get_parameter('output_path').value); path.parent.mkdir(parents=True,exist_ok=True)
+        self._file=path.open('w',newline='',encoding='utf-8'); self._writer=csv.writer(self._file)
+        self._writer.writerow(['stamp_s','gt_x','gt_y','gt_yaw','est_x','est_y','est_yaw']); self._file.flush()
         self.tf=Buffer(cache_time=Duration(seconds=30.0)); self.listener=TransformListener(self.tf,self)
-        self.create_subscription(Odometry,self.get_parameter('ground_truth_topic').value,self._gt,20)
+        gt_qos=QoSProfile(
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1,
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+        )
+        self.create_subscription(
+            Odometry,
+            self.get_parameter('ground_truth_topic').value,
+            self._gt,
+            gt_qos,
+        )
         hz=max(float(self.get_parameter('sample_rate_hz').value),0.1); self.create_timer(1.0/hz,self._sample)
     def _gt(self,msg): self.latest_gt=msg
     def _sample(self):
         if self.latest_gt is None:return
-        try:t=self.tf.lookup_transform(self.get_parameter('map_frame').value,self.get_parameter('base_frame').value,Time())
+        gt=self.latest_gt
+        gt_time=Time.from_msg(gt.header.stamp)
+        try:t=self.tf.lookup_transform(self.get_parameter('map_frame').value,self.get_parameter('base_frame').value,gt_time)
         except TransformException:return
-        gp=self.latest_gt.pose.pose.position; gq=self.latest_gt.pose.pose.orientation; ep=t.transform.translation; eq=t.transform.rotation
-        stamp=self.get_clock().now().nanoseconds/1e9
-        self.rows.append((stamp,gp.x,gp.y,yaw(gq),ep.x,ep.y,yaw(eq)))
+        gp=gt.pose.pose.position; gq=gt.pose.pose.orientation; ep=t.transform.translation; eq=t.transform.rotation
+        stamp=gt_time.nanoseconds/1e9
+        row=(stamp,gp.x,gp.y,yaw(gq),ep.x,ep.y,yaw(eq)); self.rows.append(row)
+        self._writer.writerow(row); self._file.flush()
     def close(self):
-        path=Path(self.get_parameter('output_path').value); path.parent.mkdir(parents=True,exist_ok=True)
-        with path.open('w',newline='',encoding='utf-8') as f:
-            w=csv.writer(f);w.writerow(['stamp_s','gt_x','gt_y','gt_yaw','est_x','est_y','est_yaw']);w.writerows(self.rows)
-        self.get_logger().info(f'wrote {len(self.rows)} aligned trajectory samples to {path}')
+        if self._file.closed:return
+        self._file.flush(); self._file.close()
+        self.get_logger().info(f'wrote {len(self.rows)} aligned trajectory samples to {self.get_parameter("output_path").value}')
 def main(args=None):
     rclpy.init(args=args); n=TrajectoryRecorder()
     try:rclpy.spin(n)
