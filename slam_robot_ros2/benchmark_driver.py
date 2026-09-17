@@ -53,6 +53,8 @@ class BenchmarkDriver(Node):
             if not self.finished:
                 self.pub.publish(Twist())
                 self.finished = True
+                self.get_logger().info('benchmark complete')
+                self.timer.cancel()
             return
 
         seg = self.segments[self.i]
@@ -72,10 +74,12 @@ def main(args=None):
     rclpy.init(args=args)
     node = BenchmarkDriver()
     try:
-        rclpy.spin(node)
+        while rclpy.ok() and not node.finished:
+            rclpy.spin_once(node, timeout_sec=0.1)
     finally:
         if rclpy.ok():
             node.pub.publish(Twist())
+            rclpy.spin_once(node, timeout_sec=0.1)
         node.destroy_node()
         rclpy.shutdown()
 
