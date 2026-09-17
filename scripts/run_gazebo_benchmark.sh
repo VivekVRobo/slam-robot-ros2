@@ -160,29 +160,48 @@ BAG_PID=$!
 python3 tools/process_profile.py --duration "$DURATION" --match slam_toolbox --match gz --match ros_gz_bridge --output "$ARTIFACTS/resource-profile.json" &
 PROFILE_PID=$!
 
-sleep "$DURATION"
-if ! kill -0 "$LAUNCH_PID" 2>/dev/null; then
-  if wait "$LAUNCH_PID"; then LAUNCH_RC=0; else LAUNCH_RC=$?; fi
-  LAUNCH_PID=''
+# The driver exits only after every configured segment has completed and a
+# zero-velocity command has been published. DURATION is a wall-clock watchdog,
+# not the trajectory-completion signal.
+driver_complete=false
+for _ in $(seq 1 "$DURATION"); do
+  if ! kill -0 "$LAUNCH_PID" 2>/dev/null; then
+    if wait "$LAUNCH_PID"; then LAUNCH_RC=0; else LAUNCH_RC=$?; fi
+    LAUNCH_PID=''
+    capture_runtime_diagnostics
+    echo "Gazebo/SLAM launch exited during benchmark capture (exit=$LAUNCH_RC)."
+    cat "$LAUNCH_LOG"
+    exit 2
+  fi
+  if ! kill -0 "$DRIVER_PID" 2>/dev/null; then
+    if wait "$DRIVER_PID"; then DRIVER_RC=0; else DRIVER_RC=$?; fi
+    DRIVER_PID=''
+    if [[ "$DRIVER_RC" -ne 0 ]]; then
+      capture_runtime_diagnostics
+      echo "benchmark driver failed during benchmark capture (exit=$DRIVER_RC)."
+      cat "$LAUNCH_LOG"
+      exit 2
+    fi
+    driver_complete=true
+    break
+  fi
+  sleep 1
+done
+
+if [[ "$driver_complete" != true ]]; then
   capture_runtime_diagnostics
-  echo "Gazebo/SLAM launch exited during benchmark capture (exit=$LAUNCH_RC)."
-  cat "$LAUNCH_LOG"
-  exit 2
-fi
-if ! kill -0 "$DRIVER_PID" 2>/dev/null; then
-  if wait "$DRIVER_PID"; then DRIVER_RC=0; else DRIVER_RC=$?; fi
-  DRIVER_PID=''
-  capture_runtime_diagnostics
-  echo "benchmark driver exited during benchmark capture (exit=$DRIVER_RC)."
+  echo "benchmark driver did not complete within ${DURATION}s watchdog"
   cat "$LAUNCH_LOG"
   exit 2
 fi
 
+# Give the final stop command and recorder one bounded second to propagate the
+# completed state before saving the map and shutting down evidence capture.
+sleep 1
 ros2 run nav2_map_server map_saver_cli -f "$ARTIFACTS/map" --ros-args -p use_sim_time:=true -p save_map_timeout:=10.0
 
 stop_process "$CMD_TRACE_PID" 'Gazebo cmd_vel trace' 2 2; CMD_TRACE_PID=''
 stop_process "$BAG_PID" 'ros2 bag recorder' 12 5; BAG_PID=''
-stop_process "$DRIVER_PID" 'benchmark driver' 4 2; DRIVER_PID=''
 stop_process_group "$LAUNCH_PID" 'ROS launch graph' 15 5; LAUNCH_PID=''
 wait "$PROFILE_PID" || true; PROFILE_PID=''
 trap - EXIT INT TERM
