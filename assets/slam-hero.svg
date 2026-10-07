@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="430" viewBox="0 0 1200 430" role="img" aria-labelledby="title desc">
+<title id="title">SLAM Robot — ROS 2 Ground Truth Benchmarking</title>
+<desc id="desc">A clean engineering banner for a ROS 2 SLAM project using Gazebo ground truth, 2D LiDAR, trajectory recording, ATE, RPE and loop closure evaluation. Runtime benchmark evidence is pending.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop stop-color="#F4F0E8"/>
+    <stop offset="1" stop-color="#E5EDF1"/>
+  </linearGradient>
+  <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
+    <path d="M28 0H0V28" fill="none" stroke="#6F90A8" stroke-opacity=".10"/>
+  </pattern>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#132436" flood-opacity=".10"/>
+  </filter>
+</defs>
+
+<rect width="1200" height="430" rx="28" fill="url(#bg)"/>
+<rect width="1200" height="430" rx="28" fill="url(#grid)"/>
+
+<g font-family="Inter,Segoe UI,Helvetica Neue,Arial,sans-serif">
+  <text x="58" y="62" font-size="15" font-weight="700" letter-spacing="3.2" fill="#647985">ROS 2 · GAZEBO · LiDAR · GROUND TRUTH</text>
+  <text x="58" y="118" font-size="48" font-weight="800" fill="#132436">SLAM Robot</text>
+  <text x="58" y="153" font-size="22" font-weight="650" fill="#395260">Ground Truth Benchmarking for Reproducible SLAM</text>
+
+  <text x="58" y="208" font-size="19" fill="#425866">A differential drive robotics stack built to measure estimated motion</text>
+  <text x="58" y="236" font-size="19" fill="#425866">against a separate simulator reference trajectory.</text>
+
+  <g transform="translate(58 278)">
+    <rect width="178" height="42" rx="12" fill="#FFFFFF" fill-opacity=".65" stroke="#B3C3CA"/>
+    <text x="89" y="27" text-anchor="middle" font-size="14" font-weight="700" fill="#284252">ATE + RPE</text>
+
+    <rect x="192" width="178" height="42" rx="12" fill="#FFFFFF" fill-opacity=".65" stroke="#B3C3CA"/>
+    <text x="281" y="27" text-anchor="middle" font-size="14" font-weight="700" fill="#284252">LOOP ERROR</text>
+
+    <rect x="384" width="178" height="42" rx="12" fill="#FFFFFF" fill-opacity=".65" stroke="#B3C3CA"/>
+    <text x="473" y="27" text-anchor="middle" font-size="14" font-weight="700" fill="#284252">ROSBAG REPLAY</text>
+  </g>
+
+  <g transform="translate(58 344)">
+    <rect width="504" height="44" rx="13" fill="#263D49"/>
+    <circle cx="24" cy="22" r="7" fill="#C9965B"/>
+    <text x="43" y="28" font-size="14" font-weight="700" fill="#F4F0E8">RUNTIME BENCHMARK EVIDENCE GATE: PENDING</text>
+  </g>
+
+  <g transform="translate(650 45)" filter="url(#shadow)">
+    <rect width="492" height="340" rx="22" fill="#FFFFFF" fill-opacity=".66" stroke="#B4C4CB"/>
+
+    <g fill="#5B91AC" opacity=".32">
+      <circle cx="41" cy="47" r="2.2"/><circle cx="76" cy="61" r="1.8"/><circle cx="112" cy="43" r="2.2"/><circle cx="146" cy="68" r="1.9"/>
+      <circle cx="185" cy="49" r="2.3"/><circle cx="219" cy="72" r="1.8"/><circle cx="255" cy="55" r="2.1"/><circle cx="291" cy="76" r="2.1"/>
+      <circle cx="330" cy="49" r="1.9"/><circle cx="367" cy="70" r="2.3"/><circle cx="405" cy="52" r="2.0"/><circle cx="446" cy="76" r="2.2"/>
+      <circle cx="66" cy="108" r="2.0"/><circle cx="101" cy="126" r="2.1"/><circle cx="140" cy="106" r="2.0"/><circle cx="180" cy="130" r="2.3"/>
+      <circle cx="340" cy="111" r="2.1"/><circle cx="381" cy="132" r="2.0"/><circle cx="422" cy="109" r="2.3"/>
+    </g>
+
+    <path d="M46 112V58H164V92H275V58H444V146H410V198H322V173H236V212H122V174H46Z"
+          fill="none" stroke="#738F9E" stroke-width="1.7" stroke-dasharray="7 7" opacity=".62"/>
+
+    <path d="M76 232C117 203 155 200 194 221S266 260 321 225S402 155 441 170"
+          fill="none" stroke="#537F69" stroke-width="3.4" stroke-linecap="round"/>
+    <path d="M76 239C117 211 159 193 198 228S269 267 327 232S408 161 446 176"
+          fill="none" stroke="#B77E4B" stroke-width="3.4" stroke-linecap="round"/>
+
+    <circle cx="197" cy="228" r="7" fill="#F4F0E8" stroke="#9F5D49" stroke-width="2.4"/>
+    <circle cx="328" cy="232" r="7" fill="#F4F0E8" stroke="#9F5D49" stroke-width="2.4"/>
+
+    <g transform="translate(44 273)">
+      <rect width="122" height="40" rx="10" fill="#E8EFF2" stroke="#88A0AB"/>
+      <text x="61" y="25" text-anchor="middle" font-size="13.5" font-weight="700" fill="#284252">/scan</text>
+
+      <rect x="144" width="122" height="40" rx="10" fill="#E8EFF2" stroke="#88A0AB"/>
+      <text x="205" y="25" text-anchor="middle" font-size="13.5" font-weight="700" fill="#284252">slam_toolbox</text>
+
+      <rect x="288" width="154" height="40" rx="10" fill="#F2E6D8" stroke="#B78555"/>
+      <text x="365" y="25" text-anchor="middle" font-size="13.5" font-weight="700" fill="#79593F">ATE · RPE · LOOP</text>
+    </g>
+
+    <g font-size="12.5" font-weight="700">
+      <text x="42" y="329" fill="#537F69">REFERENCE / GROUND TRUTH</text>
+      <text x="265" y="329" fill="#B77E4B">ESTIMATED TRAJECTORY</text>
+    </g>
+  </g>
+</g>
+</svg>
