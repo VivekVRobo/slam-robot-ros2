@@ -1,91 +1,141 @@
-# SLAM Robot — ROS 2 + Gazebo Ground-Truth Benchmarking
+<p align="center">
+  <img src="./assets/slam-hero.svg" alt="SLAM Robot | ROS 2 Gazebo Ground Truth Benchmarking" width="100%" />
+</p>
 
-[![Engineering CI](https://github.com/VivekVRobo/slam-robot-ros2/actions/workflows/checks.yml/badge.svg)](https://github.com/VivekVRobo/slam-robot-ros2/actions/workflows/checks.yml)
+<p align="center">
+  <a href="https://github.com/VivekVRobo/slam-robot-ros2/actions/workflows/checks.yml"><img src="https://github.com/VivekVRobo/slam-robot-ros2/actions/workflows/checks.yml/badge.svg" alt="Engineering CI"></a>
+  <img src="https://img.shields.io/badge/ROS_2-Lyrical-425866?style=flat-square&logo=ros&logoColor=white" alt="ROS 2 Lyrical">
+  <img src="https://img.shields.io/badge/Gazebo-Jetty-425866?style=flat-square" alt="Gazebo Jetty">
+  <img src="https://img.shields.io/badge/LiDAR-2D-425866?style=flat-square" alt="2D LiDAR">
+  <img src="https://img.shields.io/badge/License-MIT-425866?style=flat-square" alt="MIT License">
+</p>
 
-A reproducibility-first ROS 2 SLAM stack for a differential-drive robot with **2D LiDAR, Gazebo ground truth, ATE/RPE trajectory evaluation, loop-closure analysis, rosbag regression, and resource profiling**.
+<p align="center">
+  <strong>A reproducibility first ROS 2 SLAM stack for a differential drive robot with Gazebo ground truth, ATE and RPE trajectory evaluation, loop closure analysis, rosbag regression, and resource profiling.</strong>
+</p>
 
-> **Evidence boundary:** the software contracts and ROS 2 package build are CI-verified. A successful end-to-end Gazebo benchmark and physical LiDAR/encoder validation remain explicitly evidence-gated and are not claimed here yet.
+> [!IMPORTANT]
+> **Evidence boundary:** software contracts and the ROS 2 package build are CI verified. A successful end to end Gazebo benchmark, published ATE and RPE values, rosbag regression proof, and physical LiDAR plus encoder validation remain explicitly evidence gated and are not claimed until the required artifacts exist.
 
-## See the system in 60 seconds
+<p align="center">
+  <a href="./docs/ARCHITECTURE.md"><strong>Architecture</strong></a> ·
+  <a href="./docs/BENCHMARK_EVIDENCE_RUNBOOK.md"><strong>Benchmark Runbook</strong></a> ·
+  <a href="./docs/TRAJECTORY_EVALUATION.md"><strong>Trajectory Metrics</strong></a> ·
+  <a href="./docs/RELEASE_READINESS.md"><strong>Release Gate</strong></a>
+</p>
+
+---
+
+## Current Evidence State
+
+| Surface | Evidence | Status |
+| --- | --- | :---: |
+| **ROS package and static contracts** | CI build and configuration checks | ✅ Verified |
+| **Deterministic benchmark tooling** | Driver, capture, evaluation, thresholds, scenarios | ✅ Implemented |
+| **Gazebo ground truth path** | Separate world pose reference topic | ✅ Implemented |
+| **ATE and RPE tooling** | Metric scale SE(2) trajectory evaluation | ✅ Implemented |
+| **Loop closure evaluation** | Revisit and long horizon error tooling | ✅ Implemented |
+| **Rosbag regression workflow** | Record and replay scripts | ✅ Implemented |
+| **Gazebo runtime benchmark** | Complete evidence bundle | ◐ Pending |
+| **Published ATE and RPE result** | Measured benchmark output | ◐ Pending |
+| **Physical LiDAR and encoder validation** | Hardware evidence | ◐ Not claimed |
+
+A green build is not treated as proof of a successful simulation benchmark or physical robot performance.
+
+---
+
+## See the System in 60 Seconds
 
 ```mermaid
 flowchart LR
     CMD[/cmd_vel/] --> BRIDGE[ros_gz_bridge]
     BRIDGE --> DRIVE[Gazebo DiffDrive]
     DRIVE --> ODOM[/wheel odom/]
+
     GZ[Gazebo world] --> LIDAR[360° LiDAR]
     LIDAR --> SCAN[/scan/]
     GZ --> GT[/ground_truth/odom/]
+
     SCAN --> SLAM[slam_toolbox]
     ODOM --> SLAM
     SLAM --> MAP[/map + map→odom/]
+
     MAP --> REC[trajectory recorder]
     GT --> REC
     REC --> METRICS[ATE · RPE · loop error]
 ```
 
-The important design choice is that **Gazebo wheel odometry is not treated as ground truth**. A separate world-pose publisher provides the reference trajectory used for evaluation.
+The key design choice is that **Gazebo wheel odometry is not treated as ground truth**. A separate world pose publisher provides the reference trajectory used for evaluation.
 
-### What you can inspect immediately
+### Inspect the proof surfaces
 
 | Surface | What it proves or enables |
 | --- | --- |
-| [`simulation/`](simulation/) | Gazebo world, robot model and physics-facing configuration |
-| [`tools/trajectory_metrics.py`](tools/trajectory_metrics.py) | Best-fit SE(2) ATE + fixed-delta RPE evaluation |
-| [`tools/loop_closure_metrics.py`](tools/loop_closure_metrics.py) | Revisit / long-horizon loop-closure scoring |
+| [`simulation/`](simulation/) | Gazebo world, robot model, and physics facing configuration |
+| [`tools/trajectory_metrics.py`](tools/trajectory_metrics.py) | Best fit SE(2) ATE and fixed delta RPE evaluation |
+| [`tools/loop_closure_metrics.py`](tools/loop_closure_metrics.py) | Revisit and long horizon loop closure scoring |
 | [`scripts/record_benchmark.sh`](scripts/record_benchmark.sh) | Repeatable benchmark rosbag capture |
 | [`scripts/replay_benchmark.sh`](scripts/replay_benchmark.sh) | Regression replay path |
-| [`docs/BENCHMARK_EVIDENCE_RUNBOOK.md`](docs/BENCHMARK_EVIDENCE_RUNBOOK.md) | Exact evidence-producing benchmark procedure |
-| [`docs/RELEASE_READINESS.md`](docs/RELEASE_READINESS.md) | First tagged-release gate and allowed claims |
+| [`docs/BENCHMARK_EVIDENCE_RUNBOOK.md`](docs/BENCHMARK_EVIDENCE_RUNBOOK.md) | Exact evidence producing benchmark procedure |
+| [`docs/RELEASE_READINESS.md`](docs/RELEASE_READINESS.md) | First tagged release gate and allowed claims |
 
-## Why this project exists
+---
 
-Many SLAM demos stop at “the map looks good.” This repository asks a stricter question:
+## Why This Project Exists
+
+Many SLAM demos stop at:
+
+> **The map looks good.**
+
+This repository asks a stricter question:
 
 > **Can the result be reproduced, measured against simulator ground truth, replayed, and clearly separated from unverified hardware claims?**
 
-The project is built around measurable robotics evidence rather than screenshot-only success.
+The project is built around measurable robotics evidence rather than screenshot only success.
 
-## Project snapshot
+---
 
-| Area | Current state |
-| --- | --- |
-| Core stack | ROS 2, `slam_toolbox`, Gazebo, 2D LiDAR, Python |
-| Mapping/localization | Lifecycle-managed SLAM Toolbox |
-| Ground truth | Separate Gazebo world-pose odometry |
-| Trajectory metrics | ATE + RPE with metric-scale SE(2) alignment |
-| Loop evaluation | Long-horizon revisit error |
-| Regression | rosbag record/replay tooling |
-| Runtime profiling | CPU + RSS process profiling |
-| CI state | Static contracts + ROS package build verified |
-| Simulation benchmark | Evidence gate still pending |
-| Physical robot validation | Not yet claimed |
+## What Is Implemented
 
-## What is implemented
+### Simulation and robot model
 
-- lifecycle-managed `slam_toolbox` mapping and localization;
-- strict `map -> odom -> base_footprint -> base_link -> laser_link` ownership;
-- Gazebo physics world with loop-rich indoor geometry;
-- differential-drive physics with wheel-derived odometry;
-- 360° noisy simulated LiDAR;
-- a separate Gazebo world-pose publisher exposed as `/ground_truth/odom`;
-- explicit ROS ↔ Gazebo bridge configuration;
-- deterministic square-loop benchmark driver;
-- trajectory recording against simulator ground truth;
-- best-fit SE(2) ATE and fixed-delta RPE metrics;
-- loop-closure revisit scoring;
-- occupancy-map quality checks;
-- CPU/RSS process profiling;
-- repeatable rosbag record/replay scripts;
-- machine-readable benchmark thresholds and scenarios;
-- evidence gates that keep simulation and hardware claims separate.
+* Gazebo physics world with loop rich indoor geometry
+* differential drive physics with wheel derived odometry
+* 360 degree noisy simulated LiDAR
+* separate Gazebo world pose publisher exposed as `/ground_truth/odom`
+* explicit ROS to Gazebo bridge configuration
 
-## Quick start
+### SLAM and frame ownership
+
+* lifecycle managed `slam_toolbox` mapping and localization
+* explicit `map -> odom -> base_footprint -> base_link -> laser_link` ownership
+* trajectory recording against simulator ground truth
+* occupancy map quality checks
+
+### Benchmarking and evaluation
+
+* deterministic square loop benchmark driver
+* best fit metric scale SE(2) ATE
+* fixed delta RPE
+* loop closure revisit scoring
+* machine readable benchmark thresholds and scenarios
+* CPU and RSS process profiling
+* repeatable rosbag record and replay workflow
+
+### Evidence discipline
+
+* simulation and hardware claims are kept separate
+* benchmark artifacts are generated through documented runbooks
+* incomplete runtime evidence is marked as pending instead of inferred from CI success
+
+---
+
+## Quick Start
 
 ### Reference platform
 
-- ROS 2 **Lyrical Luth (LTS)**
-- Gazebo **Jetty**
+* ROS 2 **Lyrical Luth**
+* Gazebo **Jetty**
 
 Run the simulator:
 
@@ -108,9 +158,11 @@ ros2 launch slam_robot_ros2 simulation_mapping.launch.py \
   run_benchmark_driver:=true
 ```
 
-For the evidence-producing procedure, follow [`docs/BENCHMARK_EVIDENCE_RUNBOOK.md`](docs/BENCHMARK_EVIDENCE_RUNBOOK.md).
+For the evidence producing procedure, follow [`docs/BENCHMARK_EVIDENCE_RUNBOOK.md`](docs/BENCHMARK_EVIDENCE_RUNBOOK.md).
 
-## Quantitative evaluation
+---
+
+## Quantitative Evaluation
 
 The trajectory recorder produces:
 
@@ -130,23 +182,31 @@ python tools/loop_closure_metrics.py artifacts/trajectory.csv \
 
 ATE uses rigid **SE(2) alignment only**. No scale correction is applied because a metric LiDAR SLAM system should preserve scale.
 
-## Rosbag regression
+---
 
-Record:
+## Rosbag Regression
+
+Record a benchmark bag:
 
 ```bash
 bash scripts/record_benchmark.sh gazebo_loop_square
 ```
 
-The benchmark capture includes `/scan`, `/odom`, `/ground_truth/odom`, `/tf`, `/tf_static`, `/map`, `/diagnostics`, and `/clock`.
+The capture includes:
 
-Replay:
+`/scan` · `/odom` · `/ground_truth/odom` · `/tf` · `/tf_static` · `/map` · `/diagnostics` · `/clock`
+
+Replay it:
 
 ```bash
 bash scripts/replay_benchmark.sh artifacts/bags/gazebo_loop_square
 ```
 
-## Resource profiling
+The goal is to preserve a repeatable input path for regression and tuning rather than relying on one live simulation session.
+
+---
+
+## Resource Profiling
 
 ```bash
 python tools/process_profile.py \
@@ -157,53 +217,101 @@ python tools/process_profile.py \
   --output artifacts/resource-profile.json
 ```
 
-Only compare resource results under the same host, scenario and rendering mode.
+Only compare resource results under the same host, scenario, rendering mode, and software configuration.
 
-## Evidence maturity
+---
 
-| Claim | Status |
-| --- | --- |
-| ROS package structure/build | Verified in CI |
-| Static TF/config/contracts | Verified in CI |
-| Deterministic benchmark tooling | Implemented |
-| Gazebo runtime benchmark | Pending evidence gate |
-| Published ATE/RPE result | Pending evidence gate |
-| rosbag regression proof | Pending evidence gate |
-| Real LiDAR + encoder validation | Not yet claimed |
+## Evidence Production
 
-A green software build is **not** treated as proof of a successful Gazebo benchmark or physical robot performance.
+The repository already contains an evidence campaign path rather than expecting results to be assembled manually.
 
-## Release status
+Relevant entry points:
 
-The repository already contains a first-release gate in [`docs/RELEASE_READINESS.md`](docs/RELEASE_READINESS.md) and a copy-ready draft in [`docs/RELEASE_NOTES_DRAFT.md`](docs/RELEASE_NOTES_DRAFT.md).
+* [`scripts/run_gazebo_benchmark.sh`](scripts/run_gazebo_benchmark.sh)
+* [`scripts/run_simulation_evidence_campaign.sh`](scripts/run_simulation_evidence_campaign.sh)
+* [`scripts/evaluate_benchmark.sh`](scripts/evaluate_benchmark.sh)
+* [`evidence/README.md`](evidence/README.md)
+* [`docs/BENCHMARK_EVIDENCE_RUNBOOK.md`](docs/BENCHMARK_EVIDENCE_RUNBOOK.md)
+* [`benchmarks/scenarios.yaml`](benchmarks/scenarios.yaml)
+* [`benchmarks/thresholds.yaml`](benchmarks/thresholds.yaml)
 
-The intended first tag is a conservative **v0.1.0 software-reference release**. It should be published only after the exact release commit satisfies the documented gate. Runtime benchmark numbers must remain excluded until the evidence bundle exists.
+A benchmark result should preserve the exact commit, environment, configuration, scenario, raw trajectory, metric outputs, and relevant failure information.
+
+---
+
+## Hardware Validation Boundary
+
+Physical LiDAR and encoder performance is not inferred from simulation.
+
+The repository already separates hardware bringup and hardware evidence work through:
+
+* [`docs/HARDWARE_BRINGUP.md`](docs/HARDWARE_BRINGUP.md)
+* [`docs/HARDWARE_EVIDENCE.md`](docs/HARDWARE_EVIDENCE.md)
+* [`docs/LIDAR_EXTRINSIC_CALIBRATION.md`](docs/LIDAR_EXTRINSIC_CALIBRATION.md)
+* [`docs/WHEEL_ODOMETRY_CALIBRATION.md`](docs/WHEEL_ODOMETRY_CALIBRATION.md)
+* [`scripts/hardware_preflight.sh`](scripts/hardware_preflight.sh)
+* [`scripts/record_hardware_evidence.sh`](scripts/record_hardware_evidence.sh)
+
+Hardware claims should appear only after those evidence gates are actually satisfied.
+
+---
 
 ## Documentation
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-- [`docs/GAZEBO_SIMULATION.md`](docs/GAZEBO_SIMULATION.md)
-- [`docs/MAPPING_WORKFLOW.md`](docs/MAPPING_WORKFLOW.md)
-- [`docs/LOCALIZATION_WORKFLOW.md`](docs/LOCALIZATION_WORKFLOW.md)
-- [`docs/LOOP_CLOSURE_BENCHMARK.md`](docs/LOOP_CLOSURE_BENCHMARK.md)
-- [`docs/PERFORMANCE_BENCHMARK.md`](docs/PERFORMANCE_BENCHMARK.md)
-- [`docs/HARDWARE_EVIDENCE.md`](docs/HARDWARE_EVIDENCE.md)
-- [`docs/HARDWARE_BRINGUP.md`](docs/HARDWARE_BRINGUP.md)
-- [`docs/LIDAR_EXTRINSIC_CALIBRATION.md`](docs/LIDAR_EXTRINSIC_CALIBRATION.md)
+### Architecture and contracts
+
+* [Architecture](docs/ARCHITECTURE.md)
+* [Requirements](docs/REQUIREMENTS.md)
+* [TF Contract](docs/TF_CONTRACT.md)
+* [TF Tree](docs/TF_TREE.md)
+* [Sensor and Odometry Contract](docs/SENSOR_ODOMETRY_CONTRACT.md)
+
+### Simulation and evaluation
+
+* [Gazebo Simulation](docs/GAZEBO_SIMULATION.md)
+* [Mapping Workflow](docs/MAPPING_WORKFLOW.md)
+* [Localization Workflow](docs/LOCALIZATION_WORKFLOW.md)
+* [Trajectory Evaluation](docs/TRAJECTORY_EVALUATION.md)
+* [Loop Closure Benchmark](docs/LOOP_CLOSURE_BENCHMARK.md)
+* [Performance Benchmark](docs/PERFORMANCE_BENCHMARK.md)
+* [Rosbag Benchmark](docs/ROSBAG_BENCHMARK.md)
+* [Resource Profiling](docs/RESOURCE_PROFILING.md)
+
+### Evidence and validation
+
+* [Benchmark Evidence Runbook](docs/BENCHMARK_EVIDENCE_RUNBOOK.md)
+* [Validation Plan](docs/VALIDATION_PLAN.md)
+* [Failure Modes](docs/FAILURE_MODES.md)
+* [WSL2 Gazebo Evidence](docs/WSL2_GAZEBO_EVIDENCE.md)
+* [Hardware Evidence](docs/HARDWARE_EVIDENCE.md)
+
+---
+
+## Release Status
+
+The repository contains a first release gate in [`docs/RELEASE_READINESS.md`](docs/RELEASE_READINESS.md) and a copy ready draft in [`docs/RELEASE_NOTES_DRAFT.md`](docs/RELEASE_NOTES_DRAFT.md).
+
+The intended first tag is a conservative **v0.1.0 software reference release**. It should be published only after the exact release commit satisfies the documented gate.
+
+Runtime benchmark numbers remain excluded until the benchmark evidence bundle exists.
+
+---
 
 ## Contributing
 
 Useful contributions include:
 
-- Gazebo benchmark reproducibility;
-- SLAM Toolbox tuning with evidence;
-- trajectory/loop metric improvements;
-- rosbag regression coverage;
-- diagnostics and failure-mode tooling;
-- hardware bring-up documentation;
-- real LiDAR/encoder evidence once available.
+* Gazebo benchmark reproducibility
+* SLAM Toolbox tuning with evidence
+* trajectory and loop metric improvements
+* rosbag regression coverage
+* diagnostics and failure mode tooling
+* hardware bringup documentation
+* real LiDAR and encoder evidence once available
 
-If this project is useful to your robotics work, **star the repository or follow `VivekVRobo`** to track the benchmark and hardware-validation milestones.
+If this project is useful to your robotics work, **star the repository or follow [VivekVRobo](https://github.com/VivekVRobo)** to track the benchmark and hardware validation milestones.
+
+---
 
 ## License
 
