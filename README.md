@@ -15,7 +15,7 @@
 </p>
 
 > [!IMPORTANT]
-> **Evidence boundary:** software contracts and the ROS 2 package build are CI verified. A successful end to end Gazebo benchmark, published ATE and RPE values, rosbag regression proof, and physical LiDAR plus encoder validation remain explicitly evidence gated and are not claimed until the required artifacts exist.
+> **Evidence boundary:** software contracts and the ROS 2 package build are CI verified. A **Gazebo simulation benchmark completed successfully** on 17 September 2026 at source commit [`ec9ceb2e`](https://github.com/VivekVRobo/slam-robot-ros2/commit/ec9ceb2e39ae3527dee93e667fa92b848d91540f), with an archived trajectory, metrics and rosbag. The measured results below are for that specific simulation run, **not** a fresh benchmark of current `main`. Rosbag replay and physical LiDAR/encoder validation remain unverified.
 
 <p align="center">
   <a href="./docs/ARCHITECTURE.md"><strong>Architecture</strong></a> ·
@@ -36,11 +36,28 @@
 | **ATE and RPE tooling** | Metric scale SE(2) trajectory evaluation | ✅ Implemented |
 | **Loop closure evaluation** | Revisit and long horizon error tooling | ✅ Implemented |
 | **Rosbag regression workflow** | Record and replay scripts | ✅ Implemented |
-| **Gazebo runtime benchmark** | Complete evidence bundle | ◐ Pending |
-| **Published ATE and RPE result** | Measured benchmark output | ◐ Pending |
+| **Gazebo runtime benchmark** | [Successful CI simulation run #35179777748](https://github.com/VivekVRobo/slam-robot-ros2/actions/runs/35179777748) at `ec9ceb2e` | ✅ Captured (one run) |
+| **Published ATE and RPE result** | [Measured trajectory, metrics and provenance](evidence/reports/gazebo-2026-09-17-ec9ceb2e.md) | ✅ Simulation only |
+| **Rosbag replay** | Replay of captured benchmark inputs with observed result | ◐ Pending |
 | **Physical LiDAR and encoder validation** | Hardware evidence | ◐ Not claimed |
 
-A green build is not treated as proof of a successful simulation benchmark or physical robot performance.
+A green build alone is not proof of a simulation benchmark. This repository also archives **one actual successful Gazebo simulation execution**, but does not extrapolate its results to hardware or rosbag replay.
+
+---
+
+## Verified Gazebo Simulation Evidence
+
+![Ground truth versus aligned SLAM estimate, plotted from archived Gazebo trajectory data](evidence/figures/2026-09-17-gazebo-trajectory.svg)
+
+**17 September 2026** · scenario `gazebo_loop_square` · commit `ec9ceb2e` · 444 samples · 47.4 s evaluated.
+
+| ATE RMSE | RPE translation RMSE | RPE yaw RMSE |
+| ---: | ---: | ---: |
+| **0.023267 m** | **0.024134 m** | **0.038984 rad** |
+
+[**Measured evidence and reproduction notes →**](evidence/reports/gazebo-2026-09-17-ec9ceb2e.md) · [**Successful workflow →**](https://github.com/VivekVRobo/slam-robot-ros2/actions/runs/35179777748) · [**Download archived telemetry/rosbag →**](https://github.com/VivekVRobo/slam-robot-ros2/actions/runs/35179777748/artifacts/10495975562)
+
+The plot is a **data-derived visualization**, not a screen recording of Gazebo. This particular run passed benchmark thresholds and the manifest validator. **Rosbag replay, current-main rerun and physical hardware validation remain pending.**
 
 ---
 
@@ -291,9 +308,7 @@ Hardware claims should appear only after those evidence gates are actually satis
 
 The repository contains a first release gate in [`docs/RELEASE_READINESS.md`](docs/RELEASE_READINESS.md) and a copy ready draft in [`docs/RELEASE_NOTES_DRAFT.md`](docs/RELEASE_NOTES_DRAFT.md).
 
-The intended first tag is a conservative **v0.1.0 software reference release**. It should be published only after the exact release commit satisfies the documented gate.
-
-Runtime benchmark numbers remain excluded until the benchmark evidence bundle exists.
+A conservative [**v0.1.0 software-reference release**](https://github.com/VivekVRobo/slam-robot-ros2/releases/tag/v0.1.0) is already published. The measured benchmark values linked above come from the independent 17 September simulation workflow at `ec9ceb2e`, and should not be mistaken for measurements of the release tag itself or for physical hardware results.
 
 ---
 
