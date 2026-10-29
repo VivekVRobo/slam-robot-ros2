@@ -57,9 +57,9 @@ Archive the build command and any warnings. A failed or partially built workspac
 ## 3. Launch the benchmark
 
 ```bash
-ros2 launch slam_robot_ros2 simulation_mapping.launch.py \\
-  headless:=true \\
-  record_trajectory:=true \\
+ros2 launch slam_robot_ros2 simulation_mapping.launch.py \
+  headless:=true \
+  record_trajectory:=true \
   run_benchmark_driver:=true
 ```
 
@@ -120,10 +120,10 @@ Use [`../evidence/SIMULATION_MANIFEST_TEMPLATE.yaml`](../evidence/SIMULATION_MAN
 ## 6. Evaluate trajectory quality
 
 ```bash
-python tools/trajectory_metrics.py artifacts/trajectory.csv \\
+python tools/trajectory_metrics.py artifacts/trajectory.csv \
   --output artifacts/trajectory-metrics.json
 
-python tools/loop_closure_metrics.py artifacts/trajectory.csv \\
+python tools/loop_closure_metrics.py artifacts/trajectory.csv \
   --output artifacts/loop-metrics.json
 ```
 
@@ -138,11 +138,11 @@ bash scripts/evaluate_benchmark.sh
 ## 7. Capture resource profile
 
 ```bash
-python tools/process_profile.py \\
-  --duration 90 \\
-  --match slam_toolbox \\
-  --match gz \\
-  --match ros_gz_bridge \\
+python tools/process_profile.py \
+  --duration 90 \
+  --match slam_toolbox \
+  --match gz \
+  --match ros_gz_bridge \
   --output artifacts/resource-profile.json
 ```
 
@@ -167,8 +167,8 @@ python tools/simulation_evidence_manifest.py evidence/runs/<run-id>/manifest.yam
 When all referenced files have been copied into the run directory, use the stricter check:
 
 ```bash
-python tools/simulation_evidence_manifest.py \\
-  evidence/runs/<run-id>/manifest.yaml \\
+python tools/simulation_evidence_manifest.py \
+  evidence/runs/<run-id>/manifest.yaml \
   --check-files
 ```
 
