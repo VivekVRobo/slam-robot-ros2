@@ -16,25 +16,28 @@ Do not advance README runtime/hardware maturity gates without archived evidence.
 
 ## 1. Record environment
 
-Start by capturing machine/runtime provenance:
+Capture the machine/runtime metadata as JSON, then create the human-readable companion:
 
 ```bash
+python tools/capture_environment.py --repo . --output artifacts/environment.json
 bash scripts/capture_simulation_environment.sh artifacts/environment.md
 ```
 
-Then copy/review that information in `evidence/runs/<run-id>/environment.md` and add any details the script cannot infer, including rendering mode and non-default parameters.
+The JSON helper records a UTC timestamp, OS/kernel details, Python version, `ROS_DISTRO`, the installed `ros2cli` package version, the detected Gazebo CLI/version, Git commit SHA, branch, and working-tree state (`clean`, `dirty`, or `unknown`). If ROS 2 or Gazebo cannot be detected, the relevant JSON value is `null`; the helper does not guess a version. It uses read-only probes and writes only the requested output file (creating its parent directory if needed). It does not launch Gazebo, install packages, change ROS configuration, or certify that a benchmark ran.
 
-Required fields include:
+The Markdown companion also records CPU/RAM and WSL detection. Review both outputs, then copy them into `evidence/runs/<run-id>/`. Add details that cannot be inferred safely, including rendering mode, benchmark scenario, command line, and non-default parameters.
 
-- commit SHA (`git rev-parse HEAD`)
+Required run metadata includes:
+
+- commit SHA and clean/dirty working-tree state
 - operating system and kernel
 - CPU / RAM
-- ROS 2 distribution
-- Gazebo version
+- ROS 2 distribution and available CLI package version
+- Gazebo version, if installed
 - Python version
 - headless vs GUI mode
 - whether the run is native Linux, WSL2, or another VM
-- benchmark scenario name
+- benchmark scenario name and command line
 - any non-default parameters
 
 Suggested run id: `YYYY-MM-DD_gazebo_loop_square_<short-sha>`.
@@ -95,6 +98,7 @@ The run directory should contain, at minimum:
 
 ```text
 evidence/runs/<run-id>/
+├── environment.json
 ├── environment.md
 ├── commands.txt
 ├── manifest.yaml
