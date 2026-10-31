@@ -49,6 +49,21 @@ stop_recorder() {
 
 trap stop_recorder EXIT INT TERM
 
+on_error() {
+  local code=$?
+  cat > "$REPLAY_MD" <<EOF
+# Replay validation
+
+- Status: **FAIL**
+- Failure: unexpected replay command failure (exit $code)
+
+See `runtime/replay/rosbag-play.log`, `runtime/replay/trajectory-recorder.log`, and `runtime/replay/comparison.log` where available.
+EOF
+  echo "ERROR: unexpected replay command failure (exit $code)" >&2
+  exit "$code"
+}
+trap on_error ERR
+
 [[ -s "$BAG_DIR/metadata.yaml" ]] || fail "bag metadata is missing: $BAG_DIR/metadata.yaml" 3
 shopt -s nullglob
 BAG_FILES=("$BAG_DIR"/*.mcap "$BAG_DIR"/*.db3)
