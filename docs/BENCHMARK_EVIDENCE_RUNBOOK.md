@@ -1,6 +1,6 @@
 # Benchmark Evidence Runbook
 
-This runbook defines the exact evidence-producing workflow for the first reproducible Gazebo SLAM benchmark. It is intentionally separate from CI: CI verifies static/build contracts, while this runbook is for runtime evidence.
+This runbook documents the evidence-producing workflow for the reproducible Gazebo SLAM benchmark. The GitHub Actions workflow runs the same campaign on matching changes and uploads its output as a CI artifact; use this runbook to reproduce the procedure locally and interpret its evidence boundaries.
 
 ## Evidence policy
 
@@ -146,11 +146,17 @@ Record host hardware and rendering mode because CPU/RSS numbers are environment-
 
 ## 8. Replay validation
 
+The canonical `scripts/run_simulation_evidence_campaign.sh` automatically validates the captured rosbag after the live simulation run. For an extracted evidence bundle, replay can be checked explicitly:
+
 ```bash
-bash scripts/replay_benchmark.sh artifacts/bags/gazebo_loop_square
+bash scripts/validate_benchmark_replay.sh \
+  artifacts/evidence/<run-id>/runtime/bags/gazebo_loop_square \
+  artifacts/evidence/<run-id>/runtime
 ```
 
-Document whether replay reproduces the expected evaluation path and derived artifacts. A replay failure is evidence and must remain visible.
+The validator starts the trajectory recorder with simulated time, replays the captured benchmark topics, recomputes trajectory and loop metrics, and compares them with the original metrics using explicit tolerances. It writes `replay.md` and `runtime/replay/comparison.json`; a failed comparison remains visible and fails the evidence campaign.
+
+The rosbag includes a recorded `/clock` topic. `scripts/replay_benchmark.sh` deliberately excludes that recorded topic while using rosbag2's `--clock` option, preventing two `/clock` publishers during replay. The replay gate verifies consistency of a recorded **simulation** trace only; it does not validate physical hardware or establish a general performance claim.
 
 ## 9. Validate the evidence manifest
 
