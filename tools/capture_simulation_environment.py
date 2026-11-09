@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.metadata
 import json
 import os
 import platform
@@ -27,6 +28,14 @@ def run_command(*args: str) -> dict[str, object]:
         "stdout": result.stdout.strip(),
         "stderr": result.stderr.strip(),
     }
+
+
+def package_version(distribution: str) -> dict[str, object]:
+    try:
+        version = importlib.metadata.version(distribution)
+    except importlib.metadata.PackageNotFoundError:
+        return {"available": False, "distribution": distribution, "version": None}
+    return {"available": True, "distribution": distribution, "version": version}
 
 
 def git_metadata() -> dict[str, object]:
@@ -59,7 +68,7 @@ def main() -> int:
     parser.add_argument("--headless", action="store_true")
     args = parser.parse_args()
 
-    ros2 = run_command("ros2", "--version")
+    ros2 = package_version("ros2cli")
     gazebo = run_command("gz", "sim", "--version")
     if not gazebo.get("available"):
         gazebo = run_command("gz", "--version")
