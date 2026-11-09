@@ -19,10 +19,27 @@ Do not advance README runtime/hardware maturity gates without archived evidence.
 Start by capturing machine/runtime provenance:
 
 ```bash
-bash scripts/capture_simulation_environment.sh artifacts/environment.md
+bash scripts/capture_simulation_environment.sh artifacts/environment.json
 ```
 
-Then copy/review that information in `evidence/runs/<run-id>/environment.md` and add any details the script cannot infer, including rendering mode and non-default parameters.
+The helper writes machine-readable JSON and is safe to run on the host. It records:
+
+- exact Git commit SHA and clean/dirty working-tree state;
+- operating system and kernel;
+- CPU model, logical CPU count and installed memory when discoverable;
+- Python version;
+- ROS 2 distribution and `ros2 --version` output when available;
+- Gazebo version output when `gz` is available;
+- benchmark scenario and headless/GUI mode.
+
+Set the scenario explicitly for a benchmark run:
+
+```bash
+BENCHMARK_SCENARIO=gazebo_loop_square BENCHMARK_HEADLESS=true \
+  bash scripts/capture_simulation_environment.sh evidence/runs/<run-id>/environment.json
+```
+
+If a tool is unavailable, the JSON records that fact instead of inventing a version. Add any details the helper cannot infer, including rendering mode and non-default parameters.
 
 Required fields include:
 
@@ -95,7 +112,7 @@ The run directory should contain, at minimum:
 
 ```text
 evidence/runs/<run-id>/
-├── environment.md
+├── environment.json
 ├── commands.txt
 ├── manifest.yaml
 ├── trajectory.csv
