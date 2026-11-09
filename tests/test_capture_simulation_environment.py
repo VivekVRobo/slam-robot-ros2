@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from tools.capture_simulation_environment import git_metadata, parse_os_release
+from tools.capture_simulation_environment import git_metadata, package_version, parse_os_release
 
 
 def test_git_metadata_reports_current_repository_state():
@@ -15,6 +15,15 @@ def test_os_release_parser_returns_string_mapping():
     values = parse_os_release()
     assert isinstance(values, dict)
     assert all(isinstance(key, str) and isinstance(value, str) for key, value in values.items())
+
+
+def test_package_version_reports_missing_distribution_without_failing():
+    result = package_version("definitely-not-installed-for-this-test")
+    assert result == {
+        "available": False,
+        "distribution": "definitely-not-installed-for-this-test",
+        "version": None,
+    }
 
 
 def test_output_schema_can_be_serialized(tmp_path):
