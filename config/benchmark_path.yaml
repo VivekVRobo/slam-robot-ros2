@@ -4,11 +4,15 @@ segments:
   - {name: settle, duration_s: 2.0, linear_x: 0.0, angular_z: 0.0}
   - {name: leg_1, duration_s: 2.5, linear_x: 0.32, angular_z: 0.0}
   - {name: settle_after_leg_1, duration_s: 0.5, linear_x: 0.0, angular_z: 0.0}
-  - {name: turn_1, duration_s: 1.75, linear_x: 0.0, angular_z: 0.90}
+  # Run #53 on 2026-10-31 ended 0.391 m from the start with yaw -0.545 rad;
+  # the 1.75 s turn commands did not close within loop_closure_metrics' 0.30 m
+  # revisit radius. Extend each turn to 1.90 s; only a passing Gazebo run can
+  # validate this tuning, and the evidence remains simulation-only.
+  - {name: turn_1, duration_s: 1.90, linear_x: 0.0, angular_z: 0.90}
   - {name: leg_2, duration_s: 2.5, linear_x: 0.32, angular_z: 0.0}
-  - {name: turn_2, duration_s: 1.75, linear_x: 0.0, angular_z: 0.90}
+  - {name: turn_2, duration_s: 1.90, linear_x: 0.0, angular_z: 0.90}
   - {name: leg_3, duration_s: 2.5, linear_x: 0.32, angular_z: 0.0}
-  - {name: turn_3, duration_s: 1.75, linear_x: 0.0, angular_z: 0.90}
+  - {name: turn_3, duration_s: 1.90, linear_x: 0.0, angular_z: 0.90}
   - {name: leg_4, duration_s: 2.5, linear_x: 0.32, angular_z: 0.0}
-  - {name: turn_4, duration_s: 1.75, linear_x: 0.0, angular_z: 0.90}
+  - {name: turn_4, duration_s: 1.90, linear_x: 0.0, angular_z: 0.90}
   - {name: settle_end, duration_s: 3.0, linear_x: 0.0, angular_z: 0.0}
