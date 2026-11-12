@@ -143,6 +143,13 @@ for topic in "${REQUIRED_TOPICS[@]}"; do
   fi
 done
 
+# Start the rosbag recorder before any benchmark warm-up or driver command.
+# The recorder must see the complete benchmark interval; starting it after the
+# six-second scan-rate probe can omit the beginning of the trajectory and make
+# replay appear shorter than the original evidence.
+ros2 bag record -o "$ARTIFACTS/bags/gazebo_loop_square" --topics /scan /cmd_vel /odom /ground_truth/odom /tf /tf_static /map /diagnostics /clock &
+BAG_PID=$!
+
 ros2 topic hz /scan --window 5 > "$ARTIFACTS/scan-hz.txt" 2>&1 &
 SCAN_HZ_PID=$!
 sleep 6
@@ -155,8 +162,6 @@ CMD_TRACE_PID=$!
 ros2 run slam_robot_ros2 benchmark_driver --ros-args -p use_sim_time:=true >>"$LAUNCH_LOG" 2>&1 &
 DRIVER_PID=$!
 
-ros2 bag record -o "$ARTIFACTS/bags/gazebo_loop_square" --topics /scan /cmd_vel /odom /ground_truth/odom /tf /tf_static /map /diagnostics /clock &
-BAG_PID=$!
 python3 tools/process_profile.py --duration "$DURATION" --match slam_toolbox --match gz --match ros_gz_bridge --output "$ARTIFACTS/resource-profile.json" &
 PROFILE_PID=$!
 
