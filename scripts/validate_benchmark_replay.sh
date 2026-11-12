@@ -18,11 +18,11 @@ fail() {
 # Replay validation
 
 - Status: **FAIL**
-- Bag: `$BAG_DIR`
-- Replay rate: `$RATE`
+- Bag: \`$BAG_DIR\`
+- Replay rate: \`$RATE\`
 - Failure: $reason
 
-See `runtime/replay/rosbag-play.log`, `runtime/replay/trajectory-recorder.log`, and `runtime/replay/comparison.log` where available.
+See \`runtime/replay/rosbag-play.log\`, \`runtime/replay/trajectory-recorder.log\`, and \`runtime/replay/comparison.log\` where available.
 EOF
   echo "ERROR: $reason" >&2
   exit "$code"
@@ -57,7 +57,7 @@ on_error() {
 - Status: **FAIL**
 - Failure: unexpected replay command failure (exit $code)
 
-See `runtime/replay/rosbag-play.log`, `runtime/replay/trajectory-recorder.log`, and `runtime/replay/comparison.log` where available.
+See \`runtime/replay/rosbag-play.log\`, \`runtime/replay/trajectory-recorder.log\`, and \`runtime/replay/comparison.log\` where available.
 EOF
   echo "ERROR: unexpected replay command failure (exit $code)" >&2
   exit "$code"
@@ -74,10 +74,10 @@ cat > "$REPLAY_MD" <<EOF
 # Replay validation
 
 - Status: **IN_PROGRESS**
-- Bag: `$BAG_DIR`
-- Replay rate: `$RATE`
-- Command: `bash scripts/replay_benchmark.sh "$BAG_DIR" "$RATE"`
-- Clock policy: rosbag2 publishes replay `/clock`; the helper excludes the recorded `/clock` topic to avoid duplicate clock publishers.
+- Bag: \`$BAG_DIR\`
+- Replay rate: \`$RATE\`
+- Command: \`bash scripts/replay_benchmark.sh "$BAG_DIR" "$RATE"\`
+- Clock policy: rosbag2 publishes replay \`/clock\`; the helper excludes the recorded \`/clock\` topic to avoid duplicate clock publishers.
 EOF
 
 rm -f "$REPLAY_CSV"
@@ -129,14 +129,14 @@ cat > "$REPLAY_MD" <<EOF
 # Replay validation
 
 - Status: **PASS**
-- Bag: `$BAG_DIR`
-- Replay rate: `$RATE`
-- Command: `bash scripts/replay_benchmark.sh "$BAG_DIR" "$RATE"`
-- Playback exit code: `$PLAY_RC`
-- Replayed trajectory samples: `$SAMPLE_COUNT`
-- Comparison: `runtime/replay/comparison.json` — all configured consistency checks passed.
-- Replay artifacts: `runtime/replay/trajectory.csv`, `runtime/replay/trajectory-metrics.json`, and `runtime/replay/loop-metrics.json`.
-- Clock policy: rosbag2 publishes replay `/clock`; the helper excludes the recorded `/clock` topic to avoid duplicate clock publishers.
+- Bag: \`$BAG_DIR\`
+- Replay rate: \`$RATE\`
+- Command: \`bash scripts/replay_benchmark.sh "$BAG_DIR" "$RATE"\`
+- Playback exit code: \`$PLAY_RC\`
+- Replayed trajectory samples: \`$SAMPLE_COUNT\`
+- Comparison: \`runtime/replay/comparison.json\` — all configured consistency checks passed.
+- Replay artifacts: \`runtime/replay/trajectory.csv\`, \`runtime/replay/trajectory-metrics.json\`, and \`runtime/replay/loop-metrics.json\`.
+- Clock policy: rosbag2 publishes replay \`/clock\`; the helper excludes the recorded \`/clock\` topic to avoid duplicate clock publishers.
 
 This validates reproducibility of the recorded **simulation** trace within the comparator tolerances. It is not physical-robot validation and does not establish a general performance claim.
 EOF
