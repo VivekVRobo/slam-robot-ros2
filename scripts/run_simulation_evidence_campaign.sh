@@ -144,7 +144,7 @@ simulation_run:
     resource_profile: runtime/resource-profile.json
     map_image: runtime/map.pgm
     map_metadata: runtime/map.yaml
-    replay_notes: replay.md
+    replay_notes: runtime/replay.md
     replay_trajectory: runtime/replay/trajectory.csv
     replay_trajectory_metrics: runtime/replay/trajectory-metrics.json
     replay_loop_metrics: runtime/replay/loop-metrics.json
@@ -172,8 +172,8 @@ simulation_run:
       sha256: "$(sha256sum "$RUNTIME_DIR/replay/loop-metrics.json" | awk '{print $1}')"
     - path: runtime/replay/comparison.json
       sha256: "$(sha256sum "$RUNTIME_DIR/replay/comparison.json" | awk '{print $1}')"
-    - path: replay.md
-      sha256: "$(sha256sum "$RUN_DIR/replay.md" | awk '{print $1}')"
+    - path: runtime/replay.md
+      sha256: "$(sha256sum "$RUNTIME_DIR/replay.md" | awk '{print $1}')"
 EOF
 
 python3 tools/simulation_evidence_manifest.py "$RUN_DIR/manifest.yaml" --check-files
