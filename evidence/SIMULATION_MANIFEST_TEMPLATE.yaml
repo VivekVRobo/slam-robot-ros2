@@ -21,6 +21,7 @@ simulation_run:
     launch: "ros2 launch slam_robot_ros2 simulation_mapping.launch.py headless:=true record_trajectory:=true run_benchmark_driver:=true"
     evaluate: "bash scripts/evaluate_benchmark.sh"
     replay: "bash scripts/replay_benchmark.sh REPLACE_WITH_BAG_PATH"
+    validate_replay: "bash scripts/validate_benchmark_replay.sh REPLACE_WITH_BAG_PATH REPLACE_WITH_RUNTIME_DIR"
 
   topics:
     - /scan
@@ -39,6 +40,10 @@ simulation_run:
     map_image: map.pgm
     map_metadata: map.yaml
     replay_notes: replay.md
+    replay_trajectory: replay/trajectory.csv
+    replay_trajectory_metrics: replay/trajectory-metrics.json
+    replay_loop_metrics: replay/loop-metrics.json
+    replay_comparison: replay/comparison.json
     benchmark_gate: benchmark-gate.json
     rosbag_external_uri: REPLACE_OR_NULL
     rosbag_sha256: REPLACE_OR_NULL

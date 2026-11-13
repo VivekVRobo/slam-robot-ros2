@@ -12,10 +12,13 @@ on:
       - 'config/**'
       - 'slam_robot_ros2/**'
       - 'scripts/run_gazebo_benchmark.sh'
+      - 'scripts/replay_benchmark.sh'
+      - 'scripts/validate_benchmark_replay.sh'
       - 'scripts/run_simulation_evidence_campaign.sh'
       - 'scripts/evaluate_benchmark.sh'
       - 'scripts/capture_simulation_environment.sh'
       - 'tools/**'
+      - 'test/**'
       - 'benchmarks/**'
       - 'requirements-dev.txt'
   push:
@@ -30,10 +33,13 @@ on:
       - 'config/**'
       - 'slam_robot_ros2/**'
       - 'scripts/run_gazebo_benchmark.sh'
+      - 'scripts/replay_benchmark.sh'
+      - 'scripts/validate_benchmark_replay.sh'
       - 'scripts/run_simulation_evidence_campaign.sh'
       - 'scripts/evaluate_benchmark.sh'
       - 'scripts/capture_simulation_environment.sh'
       - 'tools/**'
+      - 'test/**'
       - 'benchmarks/**'
       - 'requirements-dev.txt'
 
@@ -71,6 +77,10 @@ jobs:
         run: |
           source /opt/ros/lyrical/setup.bash
           python3 tools/simulation_lint.py
+          python3 -m pytest -q test/test_compare_replay_metrics.py
+          bash -n scripts/replay_benchmark.sh
+          bash -n scripts/validate_benchmark_replay.sh
+          bash -n scripts/run_simulation_evidence_campaign.sh
       - name: Run reproducible Gazebo evidence campaign
         shell: bash
         env:
