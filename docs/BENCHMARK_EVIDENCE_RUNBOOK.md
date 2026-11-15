@@ -19,14 +19,14 @@ Do not advance README runtime/hardware maturity gates without archived evidence.
 Start by capturing machine/runtime provenance:
 
 ```bash
-bash scripts/capture_simulation_environment.sh artifacts/environment.md
+bash scripts/capture_simulation_environment.sh artifacts/environment.md artifacts/environment.json
 ```
 
 Then copy/review that information in `evidence/runs/<run-id>/environment.md` and add any details the script cannot infer, including rendering mode and non-default parameters.
 
 Required fields include:
 
-- commit SHA (`git rev-parse HEAD`)
+- commit SHA (`git rev-parse HEAD`)\n- clean/dirty working-tree state
 - operating system and kernel
 - CPU / RAM
 - ROS 2 distribution
