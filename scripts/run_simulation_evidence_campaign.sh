@@ -60,7 +60,7 @@ exec > >(tee -a "$LOG") 2>&1
 printf 'run_id=%s\ncommit=%s\nscenario=%s\n' "$RUN_ID" "$SHA" "$SCENARIO"
 printf 'duration_s=%s\nros_distro=%s\n' "$DURATION" "$ROS_DISTRO"
 
-bash scripts/capture_simulation_environment.sh "$RUN_DIR/environment.md"
+bash scripts/capture_simulation_environment.sh "$RUN_DIR/environment.md" "$RUN_DIR/environment.json"
 
 cat > "$RUN_DIR/commands.txt" <<EOF
 rm -rf build install log
