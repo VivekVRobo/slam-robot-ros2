@@ -17,7 +17,7 @@ simulation_run:
     host_context: native_linux_or_wsl2_or_vm
 
   commands:
-    build: "source /opt/ros/lyrical/setup.bash && rosdep install --from-paths . --ignore-src --rosdistro lyrical -r -y && colcon build --packages-select slam_robot_ros2 --symlink-install"
+    build: "source /opt/ros/lyrical/setup.bash && rosdep install --from-paths . --ignore-src --rosdistro lyrical --skip-keys ament_python -r -y && colcon build --packages-select slam_robot_ros2 --symlink-install"
     launch: "ros2 launch slam_robot_ros2 simulation_mapping.launch.py headless:=true record_trajectory:=true run_benchmark_driver:=true"
     evaluate: "bash scripts/evaluate_benchmark.sh"
     replay: "bash scripts/replay_benchmark.sh REPLACE_WITH_BAG_PATH"
