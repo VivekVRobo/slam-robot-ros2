@@ -75,7 +75,9 @@ jobs:
         run: |
           source /opt/ros/lyrical/setup.bash
           rosdep update
-          rosdep install --from-paths . --ignore-src --rosdistro lyrical -r -y
+          # ament_python is the ROS build-tool package already provided by setup-ros;
+          # current Lyrical rosdep metadata does not expose it as a resolvable key.
+          rosdep install --from-paths . --ignore-src --rosdistro lyrical --skip-keys ament_python -r -y
       - name: Build ROS package
         shell: bash
         run: |
