@@ -2,11 +2,12 @@
 
 ROS nav_msgs/MapMetaData.origin is the world pose of the lower-left
 corner of cell (0, 0). Cell centres therefore add half a resolution in
-both axes. This module keeps that convention explicit and testable without
-requiring a running ROS graph.
+both axes, after applying the origin pose rotation. This module keeps that
+convention explicit and testable without requiring a running ROS graph.
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
@@ -27,9 +28,13 @@ def cell_center_world(origin: MapOrigin, resolution: float, column: int, row: in
         raise ValueError("resolution must be positive")
     if column < 0 or row < 0:
         raise ValueError("column and row must be non-negative")
+    local_x = (column + 0.5) * resolution
+    local_y = (row + 0.5) * resolution
+    c = math.cos(origin.yaw)
+    s = math.sin(origin.yaw)
     return (
-        origin.x + (column + 0.5) * resolution,
-        origin.y + (row + 0.5) * resolution,
+        origin.x + c * local_x - s * local_y,
+        origin.y + s * local_x + c * local_y,
     )
 
 
@@ -39,12 +44,18 @@ def world_to_cell_center(
     x: float,
     y: float,
 ) -> tuple[int, int]:
-    """Return the cell whose centre contains a world point."""
+    """Return the cell whose local grid square contains a world point."""
     if resolution <= 0:
         raise ValueError("resolution must be positive")
+    dx = x - origin.x
+    dy = y - origin.y
+    c = math.cos(origin.yaw)
+    s = math.sin(origin.yaw)
+    local_x = c * dx + s * dy
+    local_y = -s * dx + c * dy
     return (
-        int((x - origin.x) // resolution),
-        int((y - origin.y) // resolution),
+        int(local_x // resolution),
+        int(local_y // resolution),
     )
 
 
