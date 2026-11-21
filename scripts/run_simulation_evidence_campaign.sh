@@ -64,7 +64,7 @@ bash scripts/capture_simulation_environment.sh "$RUN_DIR/environment.md"
 
 cat > "$RUN_DIR/commands.txt" <<EOF
 rm -rf build install log
-rosdep install --from-paths . --ignore-src --rosdistro $ROS_DISTRO -r -y
+rosdep install --from-paths . --ignore-src --rosdistro $ROS_DISTRO --skip-keys ament_python -r -y
 colcon build --packages-select slam_robot_ros2 --symlink-install
 set +u; source install/setup.bash; set -u
 ARTIFACTS_DIR=$RUNTIME_DIR BENCHMARK_DURATION_S=$DURATION bash scripts/run_gazebo_benchmark.sh

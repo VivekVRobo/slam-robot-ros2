@@ -44,7 +44,7 @@ Suggested run id: `YYYY-MM-DD_gazebo_loop_square_<short-sha>`.
 ```bash
 rm -rf build install log
 source /opt/ros/lyrical/setup.bash
-rosdep install --from-paths . --ignore-src --rosdistro lyrical -r -y
+rosdep install --from-paths . --ignore-src --rosdistro lyrical --skip-keys ament_python -r -y
 colcon build --packages-select slam_robot_ros2 --symlink-install
 source install/setup.bash
 ```
