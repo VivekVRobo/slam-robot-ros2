@@ -1,0 +1,50 @@
+import pytest
+
+from tools.map_origin import (
+    load_map_metadata,
+    occupancy_grid_cell_center,
+    pgm_pixel_center_world,
+)
+
+
+def test_occupancy_grid_origin_is_lower_left(tmp_path):
+    metadata = tmp_path / "map.yaml"
+    metadata.write_text(
+        "image: map.pgm\nresolution: 0.05\norigin: [10.0, 20.0, 0.0]\n"
+    )
+
+    loaded = load_map_metadata(metadata)
+    assert loaded["origin_xy"] == (10.0, 20.0)
+    assert occupancy_grid_cell_center(
+        0, 0, loaded["resolution"], loaded["origin_xy"]
+    ) == pytest.approx((10.025, 20.025))
+
+
+def test_pgm_row_zero_is_flipped_to_top_of_ros_grid():
+    assert pgm_pixel_center_world(
+        0, 0, height=80, resolution=0.05, origin_xy=(10.0, 20.0)
+    ) == pytest.approx((10.025, 23.975))
+
+
+def test_pgm_bottom_row_matches_occupancy_grid_row_zero():
+    assert pgm_pixel_center_world(
+        79, 3, height=80, resolution=0.05, origin_xy=(10.0, 20.0)
+    ) == pytest.approx(occupancy_grid_cell_center(0, 3, 0.05, (10.0, 20.0)))
+
+
+def test_map_metadata_rejects_non_positive_resolution(tmp_path):
+    metadata = tmp_path / "map.yaml"
+    metadata.write_text(
+        "image: map.pgm\nresolution: 0\norigin: [0.0, 0.0, 0.0]\n"
+    )
+    with pytest.raises(ValueError, match="positive"):
+        load_map_metadata(metadata)
+
+
+def test_map_metadata_rejects_short_origin(tmp_path):
+    metadata = tmp_path / "map.yaml"
+    metadata.write_text(
+        "image: map.pgm\nresolution: 0.05\norigin: [0.0]\n"
+    )
+    with pytest.raises(ValueError, match="at least x and y"):
+        load_map_metadata(metadata)
