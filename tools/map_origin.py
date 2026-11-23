@@ -45,6 +45,33 @@ def load_map_metadata(path: Path) -> dict[str, Any]:
     }
 
 
+def read_pgm_dimensions(path: Path) -> tuple[int, int]:
+    """Read the width and height from a binary PGM header without decoding pixels."""
+    with path.open("rb") as stream:
+        magic = stream.readline().strip()
+        if magic != b"P5":
+            raise ValueError("expected a binary PGM (P5) image")
+
+        tokens: list[bytes] = []
+        while len(tokens) < 3:
+            line = stream.readline()
+            if not line:
+                raise ValueError("incomplete PGM header")
+            line = line.split(b"#", 1)[0]
+            tokens.extend(line.split())
+
+        try:
+            width, height, max_value = (int(token) for token in tokens[:3])
+        except ValueError as exc:
+            raise ValueError("PGM header contains non-numeric dimensions") from exc
+
+    if width <= 0 or height <= 0:
+        raise ValueError("PGM dimensions must be positive")
+    if not 0 < max_value <= 65535:
+        raise ValueError("PGM max value must be in the range 1..65535")
+    return width, height
+
+
 def occupancy_grid_cell_center(
     row: int, col: int, resolution: float, origin_xy: tuple[float, float]
 ) -> tuple[float, float]:
