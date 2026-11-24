@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import json
 
-from tools.capture_simulation_environment import git_metadata, package_version, parse_os_release
+from tools.capture_simulation_environment import (
+    detect_host_environment,
+    git_metadata,
+    package_version,
+    parse_os_release,
+)
 
 
 def test_git_metadata_reports_current_repository_state():
@@ -15,6 +20,10 @@ def test_os_release_parser_returns_string_mapping():
     values = parse_os_release()
     assert isinstance(values, dict)
     assert all(isinstance(key, str) and isinstance(value, str) for key, value in values.items())
+
+
+def test_host_environment_is_one_of_supported_values():
+    assert detect_host_environment() in {"native-linux", "wsl2", "windows", "macos", "other"}
 
 
 def test_package_version_reports_missing_distribution_without_failing():
@@ -30,8 +39,8 @@ def test_output_schema_can_be_serialized(tmp_path):
     output = tmp_path / "environment.json"
     data = {
         "schema_version": 1,
-        "host": {"kernel": "test"},
-        "software": {"python": "3.12"},
+        "host": {"kernel": "test", "environment": "native-linux"},
+        "software": {"python": "3.12", "ros_2_distribution": "lyrical"},
         "repository": {"commit_sha": "a" * 40, "working_tree": "clean"},
         "benchmark": {"scenario": "gazebo_loop_square", "headless": True},
     }
@@ -39,3 +48,4 @@ def test_output_schema_can_be_serialized(tmp_path):
     loaded = json.loads(output.read_text(encoding="utf-8"))
     assert loaded["schema_version"] == 1
     assert loaded["repository"]["working_tree"] == "clean"
+    assert loaded["host"]["environment"] == "native-linux"
