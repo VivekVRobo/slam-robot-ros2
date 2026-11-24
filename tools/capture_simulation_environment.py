@@ -61,6 +61,18 @@ def parse_os_release() -> dict[str, str]:
     return values
 
 
+def detect_host_environment() -> str:
+    if os.environ.get("WSL_INTEROP") or "microsoft" in platform.release().lower():
+        return "wsl2"
+    if platform.system() == "Linux":
+        return "native-linux"
+    if platform.system() == "Windows":
+        return "windows"
+    if platform.system() == "Darwin":
+        return "macos"
+    return "other"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("output", type=Path)
@@ -69,30 +81,41 @@ def main() -> int:
     args = parser.parse_args()
 
     ros2 = package_version("ros2cli")
+    ros2_cli = run_command("ros2", "--version")
     gazebo = run_command("gz", "sim", "--version")
     if not gazebo.get("available"):
         gazebo = run_command("gz", "--version")
 
     cpu = run_command("nproc")
+    cpu_info = run_command("lscpu")
     ram = run_command("free", "-b")
     os_release = parse_os_release()
+
+    cpu_model = platform.processor() or None
+    if cpu_info.get("returncode") == 0:
+        for line in str(cpu_info.get("stdout", "")).splitlines():
+            if line.lower().startswith("model name:"):
+                cpu_model = line.split(":", 1)[1].strip()
+                break
 
     data = {
         "schema_version": 1,
         "captured_at_utc": datetime.now(timezone.utc).isoformat(),
         "host": {
             "hostname": socket.gethostname(),
+            "environment": detect_host_environment(),
             "os": os_release.get("PRETTY_NAME") or platform.platform(),
             "kernel": platform.release(),
             "architecture": platform.machine(),
-            "cpu_model": platform.processor() or None,
+            "cpu_model": cpu_model,
             "logical_cpus": int(cpu["stdout"]) if cpu.get("returncode") == 0 and str(cpu.get("stdout", "")).isdigit() else None,
             "memory_bytes": None,
         },
         "software": {
             "python": platform.python_version(),
             "ros_2_distribution": os.environ.get("ROS_DISTRO"),
-            "ros2_version": ros2,
+            "ros2_package": ros2,
+            "ros2_cli": ros2_cli,
             "gazebo_version": gazebo,
         },
         "repository": git_metadata(),
