@@ -6,10 +6,11 @@ from tools.map_origin_audit import cell_center_to_world, load_metadata, world_to
 
 
 def write_map(path: Path, origin: list[float]) -> None:
+    origin_text = ", ".join(str(value) for value in origin)
     path.write_text(
         "image: map.pgm\n"
         "resolution: 0.5\n"
-        f"origin: [{origin[0]}, {origin[1]}, {origin[2]}]\n"
+        f"origin: [{origin_text}]\n"
         "negate: 0\n"
         "occupied_thresh: 0.65\n"
         "free_thresh: 0.196\n",
@@ -47,7 +48,7 @@ def test_origin_must_have_three_values(tmp_path, bad_origin):
     path = tmp_path / "map.yaml"
     write_map(path, bad_origin)
 
-    with pytest.raises(ValueError, match="exactly \[x, y, yaw\]"):
+    with pytest.raises(ValueError, match=r"exactly \[x, y, yaw\]"):
         load_metadata(path)
 
 
